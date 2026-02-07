@@ -92,6 +92,12 @@ export default function SettingsPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (isAdmin) {
+      loadUsers();
+    }
+  }, [showInactiveUsers]);
+
   const loadData = async () => {
     try {
       const [groupData, membersData] = await Promise.all([
