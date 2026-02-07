@@ -198,6 +198,14 @@ export const getProjectWorkSummary = (projectId) =>
 
 export const getAkkordPricing = () => fetchAPI('/api/akkord/pricing');
 
+// Group Settings
+export const getGroupSettings = () => fetchAPI('/api/settings/group');
+
+export const updateGroupSettings = (data) =>
+  fetchAPI('/api/settings/group', { method: 'PUT', body: JSON.stringify(data) });
+
+export const getGroupEmployees = () => fetchAPI('/api/group/employees');
+
 // Utility
 export const formatCurrency = (amount, currency = 'NOK') => {
   return new Intl.NumberFormat('nb-NO', {
