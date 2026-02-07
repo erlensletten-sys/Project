@@ -127,6 +127,97 @@ export default function SettingsPage() {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/group/users?include_inactive=${showInactiveUsers}`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMembers(data);
+      }
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    }
+  };
+
+  const handleUpdateUserRole = async (userId, newRole) => {
+    setUpdatingRole(true);
+    try {
+      const response = await fetch(`${API_URL}/api/group/users/${userId}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ role: newRole })
+      });
+      
+      if (response.ok) {
+        toast.success(t('settings.roleUpdated'));
+        setEditingUser(null);
+        loadUsers();
+      } else {
+        const data = await response.json();
+        toast.error(data.detail || 'Failed to update role');
+      }
+    } catch (error) {
+      toast.error('Failed to update role');
+    } finally {
+      setUpdatingRole(false);
+    }
+  };
+
+  const handleToggleUserStatus = async (userId, isActive) => {
+    const endpoint = isActive ? 'deactivate' : 'activate';
+    try {
+      const response = await fetch(`${API_URL}/api/group/users/${userId}/${endpoint}`, {
+        method: 'PUT',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        toast.success(isActive ? t('settings.userDeactivated') : t('settings.userActivated'));
+        loadUsers();
+      } else {
+        const data = await response.json();
+        toast.error(data.detail || 'Failed to update user status');
+      }
+    } catch (error) {
+      toast.error('Failed to update user status');
+    }
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    if (!newUserData.name || !newUserData.email || !newUserData.password) {
+      toast.error(t('settings.fillAllFields'));
+      return;
+    }
+    
+    setCreatingUser(true);
+    try {
+      const response = await fetch(`${API_URL}/api/group/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(newUserData)
+      });
+      
+      if (response.ok) {
+        toast.success(t('settings.userCreatedSuccess'));
+        setCreateUserDialogOpen(false);
+        setNewUserData({ name: '', email: '', password: '', role: 'employee' });
+        loadUsers();
+      } else {
+        const data = await response.json();
+        toast.error(data.detail || 'Failed to create user');
+      }
+    } catch (error) {
+      toast.error('Failed to create user');
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   const handleSaveHourlyRate = async () => {
     setSavingRate(true);
     try {
