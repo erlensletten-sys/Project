@@ -214,6 +214,52 @@ class ChecklistResponse(BaseModel):
     created_by: str
     created_at: datetime
 
+# Form Builder Models (New)
+class FormFieldCreate(BaseModel):
+    field_type: str  # text, textarea, number, checkbox, select, date, file, signature
+    label: str
+    required: bool = False
+    options: Optional[List[str]] = None  # For select fields
+    placeholder: Optional[str] = None
+
+class FormTemplateCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    category: str = "general"  # general, safety, quality, inspection
+    fields: List[FormFieldCreate]
+
+class FormTemplateResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    form_id: str
+    group_id: str
+    title: str
+    description: Optional[str] = None
+    category: str
+    fields: List[dict]
+    is_active: bool = True
+    submission_count: int = 0
+    created_by: str
+    created_at: datetime
+
+class FormSubmissionCreate(BaseModel):
+    form_id: str
+    project_id: Optional[str] = None
+    responses: dict  # field_id -> value
+
+class FormSubmissionResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    submission_id: str
+    form_id: str
+    form_title: str
+    group_id: str
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    responses: dict
+    submitted_by: str
+    submitted_by_name: Optional[str] = None
+    created_at: datetime
+    pdf_url: Optional[str] = None
+
 # HSE Document Models
 class HSEDocumentCreate(BaseModel):
     title: str
