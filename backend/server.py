@@ -548,7 +548,7 @@ async def list_invoices(request: Request, status: Optional[str] = None):
     
     return invoices
 
-@api_router.post("/invoices", response_model=InvoiceResponse)
+@api_router.post("/invoices", response_model=InvoiceResponse, status_code=201)
 async def create_invoice(request: Request, invoice: InvoiceCreate):
     """Create a new invoice"""
     user = await require_auth(request)
