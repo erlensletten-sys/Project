@@ -336,6 +336,10 @@ export const en = {
     defaultHourlyRate: "Default Hourly Rate",
     hourlyRateHint: "This rate is used for hourly work entries in the work log",
     hourlyRateSaved: "Hourly rate saved successfully",
+    senderNameSaved: "Sender name saved successfully",
+    groupSenderName: "Your Organization's Sender Name",
+    groupSenderNameHint: "This name will appear as the 'From' name when your organization sends emails",
+    globalSmtpNote: "SMTP settings are shared across all organizations. Only the sender name is customizable per organization.",
   },
 
   // Work Log (Akkord/Piece-rate)
