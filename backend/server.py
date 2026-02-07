@@ -272,6 +272,16 @@ class HSEDocumentCreate(BaseModel):
     expiry_date: Optional[datetime] = None
     project_id: Optional[str] = None
 
+# Email Settings Model
+class EmailSettingsUpdate(BaseModel):
+    smtp_host: str
+    smtp_port: int = 587
+    smtp_user: str
+    smtp_password: Optional[str] = None
+    smtp_use_tls: bool = True
+    sender_email: str
+    sender_name: str = "NordicForge"
+
 class HSEDocumentResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
     document_id: str
