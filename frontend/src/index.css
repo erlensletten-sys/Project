@@ -492,12 +492,12 @@ code {
 .light input[type="date"],
 .light textarea,
 .light select {
-    @apply bg-white border-slate-300 text-slate-900;
+    background-color: white !important;
+    border-color: hsl(220, 13%, 80%) !important;
+    color: hsl(222, 47%, 11%) !important;
 }
 
-.light input[type="text"]::placeholder,
-.light input[type="email"]::placeholder,
-.light input[type="password"]::placeholder,
+.light input::placeholder,
 .light textarea::placeholder {
-    @apply text-slate-400;
+    color: hsl(220, 9%, 60%) !important;
 }
