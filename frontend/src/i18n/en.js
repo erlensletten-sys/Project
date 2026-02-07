@@ -331,6 +331,11 @@ export const en = {
     sendInvite: "Send Invite",
     roleMember: "Member",
     roleAdmin: "Admin",
+    workLogSettings: "Work Log Settings",
+    workLogSettingsSubtitle: "Configure default rates for hourly work",
+    defaultHourlyRate: "Default Hourly Rate",
+    hourlyRateHint: "This rate is used for hourly work entries in the work log",
+    hourlyRateSaved: "Hourly rate saved successfully",
   },
 
   // Work Log (Akkord/Piece-rate)
