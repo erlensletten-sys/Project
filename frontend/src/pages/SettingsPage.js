@@ -69,6 +69,10 @@ export default function SettingsPage() {
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
 
+  // Hourly rate settings
+  const [hourlyRate, setHourlyRate] = useState(0);
+  const [savingRate, setSavingRate] = useState(false);
+
   const isAdmin = user?.role === 'admin' || user?.role === 'owner';
 
   useEffect(() => {
@@ -84,14 +88,51 @@ export default function SettingsPage() {
       setGroup(groupData);
       setMembers(membersData);
       
-      // Load email config if admin
+      // Load email config and group settings if admin
       if (isAdmin) {
         loadEmailConfig();
+        loadGroupSettings();
       }
     } catch (error) {
       toast.error('Failed to load settings');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadGroupSettings = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/settings/group`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setHourlyRate(data.hourly_rate || 0);
+      }
+    } catch (error) {
+      console.error('Failed to load group settings:', error);
+    }
+  };
+
+  const handleSaveHourlyRate = async () => {
+    setSavingRate(true);
+    try {
+      const response = await fetch(`${API_URL}/api/settings/group`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ hourly_rate: parseFloat(hourlyRate) || 0 })
+      });
+      
+      if (response.ok) {
+        toast.success(t('settings.hourlyRateSaved'));
+      } else {
+        toast.error('Failed to save hourly rate');
+      }
+    } catch (error) {
+      toast.error('Failed to save hourly rate');
+    } finally {
+      setSavingRate(false);
     }
   };
 
