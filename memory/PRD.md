@@ -8,8 +8,8 @@ Build a combination of Tripletex (invoicing, payroll, expense management) and Sm
 
 ## User Personas
 1. **Organization Owner** - Creates the organization, full admin access
-2. **Admin** - Can manage users, approve expenses, process payroll, access all features
-3. **Member** - Basic access to create invoices, submit expenses, use checklists
+2. **Admin** - Can manage users, approve expenses, process payroll, create form templates
+3. **Member** - Fill forms, submit expenses, view projects
 
 ## Core Requirements
 - Multi-tenant architecture with Groups/Organizations
@@ -33,22 +33,22 @@ Build a combination of Tripletex (invoicing, payroll, expense management) and Sm
 - [x] Invoice status management (draft, sent, paid, overdue)
 - [x] Invoice listing with search and filters
 - [x] Invoice detail view
-- [x] **NEW** Send invoice via email (SendGrid integration)
+- [x] Send invoice via email (SendGrid integration)
 
 ### Payroll (From Tripletex)
 - [x] Employee management
 - [x] Salary tracking
 - [x] Department organization
 - [x] Monthly payroll calculations
-- [x] **NEW** Payroll run history
-- [x] **NEW** Payroll run status management (draft, processed, paid)
-- [x] **NEW** Employee snapshot per payroll run
+- [x] Payroll run history
+- [x] Payroll run status management (draft, processed, paid)
+- [x] Employee snapshot per payroll run
 
 ### Expense Management (From Tripletex)
 - [x] Submit expenses with categories
 - [x] Expense approval workflow (pending, approved, rejected)
 - [x] Admin approval interface
-- [x] **NEW** Receipt file upload (PDF, PNG, JPG up to 10MB)
+- [x] Receipt file upload (PDF, PNG, JPG up to 10MB)
 
 ### Projects (From Smartdok)
 - [x] Project creation with budget and timeline
@@ -56,17 +56,26 @@ Build a combination of Tripletex (invoicing, payroll, expense management) and Sm
 - [x] Task status tracking (todo, in_progress, done)
 - [x] Priority levels (low, medium, high)
 
-### Checklists (From Smartdok)
-- [x] Create checklist templates
-- [x] Category support (general, safety, quality, inspection)
-- [x] Interactive item toggling
-- [x] Progress tracking
+### **Form Builder (From Smartdok - Enhanced)** ✨ NEW
+- [x] **Admin form template creation** with multiple field types:
+  - Short Text
+  - Long Text (textarea)
+  - Number
+  - Checkbox
+  - Dropdown (select with custom options)
+  - Date
+- [x] **Field configuration**: required/optional, placeholders
+- [x] **Form categories**: general, safety, quality, inspection
+- [x] **User form submission** with project linking
+- [x] **Submissions list** with filtering
+- [x] **PDF export** of completed form submissions
+- [x] **Admin-only form management** (create/delete templates)
 
 ### HSE Documents (From Smartdok)
 - [x] Document types (policy, procedure, form, report, certificate)
 - [x] Expiry date tracking with alerts
 - [x] Content and file URL support
-- [x] **NEW** Document file upload (PDF, DOC, DOCX, XLS, XLSX, PNG, JPG)
+- [x] Document file upload (PDF, DOC, DOCX, XLS, XLSX, PNG, JPG)
 
 ### Dashboard
 - [x] Revenue and pending invoice stats
@@ -77,7 +86,7 @@ Build a combination of Tripletex (invoicing, payroll, expense management) and Sm
 - [x] Quick action cards
 
 ### UI/UX
-- [x] **NEW** Dark theme across all pages
+- [x] Dark theme across all pages
 - [x] Nordic Industrial design theme
 - [x] Space Grotesk typography
 - [x] Safety Orange accent (#FF4500)
@@ -91,37 +100,41 @@ Build a combination of Tripletex (invoicing, payroll, expense management) and Sm
 - **Auth**: JWT with httpOnly cookies
 - **Email**: SendGrid (optional)
 - **File Storage**: Local filesystem with secure access
+- **PDF Generation**: ReportLab
 
-## New API Endpoints (This Iteration)
-- `GET /api/payroll/runs` - List payroll runs
-- `POST /api/payroll/runs` - Create payroll run
-- `GET /api/payroll/runs/{id}` - Get payroll run detail
-- `PATCH /api/payroll/runs/{id}/status` - Update run status
-- `POST /api/upload` - Upload file
-- `GET /api/files/{group_id}/{filename}` - Get uploaded file
-- `POST /api/invoices/{id}/send` - Send invoice email
+## Form Builder API Endpoints
+- `GET /api/forms` - List form templates
+- `POST /api/forms` - Create form template (admin only)
+- `GET /api/forms/{id}` - Get form template
+- `DELETE /api/forms/{id}` - Delete form template (admin only)
+- `GET /api/forms/{id}/submissions` - List form submissions
+- `POST /api/forms/{id}/submissions` - Submit form response
+- `GET /api/submissions` - List all submissions
+- `GET /api/submissions/{id}` - Get submission details
+- `GET /api/submissions/{id}/pdf` - Download submission as PDF
 
 ## Prioritized Backlog
 
 ### P0 (Critical)
 - All core features implemented ✅
 
-### P1 (High Priority)
-- [x] Payroll run history ✅
-- [x] File upload for receipts/documents ✅
-- [x] Email notifications for invoice delivery ✅
-- [x] Dark theme ✅
-- [ ] Recurring invoices
-- [ ] PDF export for invoices
+### P1 (High Priority) - All Done ✅
+- [x] Payroll run history
+- [x] File upload for receipts/documents
+- [x] Email notifications for invoice delivery
+- [x] Dark theme
+- [x] Form builder with PDF export
 
 ### P2 (Medium Priority)
+- [ ] Recurring invoices
+- [ ] PDF invoice export/download
 - [ ] Report generation (monthly/quarterly)
-- [ ] Time tracking
-- [ ] Equipment tracking
-- [ ] Mobile-optimized field view
-- [ ] Expense receipt OCR
+- [ ] Time tracking integration with payroll
+- [ ] Signature field for forms
 
 ### P3 (Future)
+- [ ] Mobile-optimized field view
+- [ ] Expense receipt OCR
 - [ ] Integration with Norwegian accounting standards
 - [ ] Altinn integration
 - [ ] Bank integration
@@ -129,7 +142,7 @@ Build a combination of Tripletex (invoicing, payroll, expense management) and Sm
 - [ ] Mobile app
 
 ## Next Steps
-1. Add recurring invoice functionality
+1. Add signature field to form builder
 2. PDF invoice export/download
-3. Monthly report generation
-4. Time tracking integration with payroll
+3. Recurring invoice functionality
+4. Time tracking integration
