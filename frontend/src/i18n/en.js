@@ -32,6 +32,7 @@ export const en = {
     upload: "Upload",
     view: "View",
     close: "Close",
+    select: "Select",
   },
 
   // Navigation

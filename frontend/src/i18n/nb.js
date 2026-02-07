@@ -32,6 +32,7 @@ export const nb = {
     upload: "Last opp",
     view: "Vis",
     close: "Lukk",
+    select: "Velg",
   },
 
   // Navigation
