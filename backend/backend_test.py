@@ -414,7 +414,7 @@ class NordicForgeAPITester:
             "Create HSE Document",
             "POST",
             "hse-documents",
-            200,
+            201,
             data=hse_data
         )
         
@@ -426,6 +426,189 @@ class NordicForgeAPITester:
                 print("   ⚠ HSE document creation response incorrect")
         
         return success, None
+    
+    def test_payroll_runs(self):
+        """Test payroll run creation and status updates"""
+        print("\n--- Testing Payroll Run Management ---")
+        
+        # First, ensure we have employees
+        employee_data = {
+            "name": "Jane Smith",
+            "email": "jane.smith@example.com",
+            "position": "Software Engineer",
+            "department": "Engineering", 
+            "salary": 65000
+        }
+        
+        emp_success, emp_data, emp_response = self.run_test(
+            "Create Employee for Payroll",
+            "POST", 
+            "employees",
+            201,
+            data=employee_data
+        )
+        
+        if not emp_success:
+            return False
+            
+        # Test payroll run creation
+        from datetime import datetime
+        current_date = datetime.now()
+        
+        run_data = {
+            "month": current_date.month,
+            "year": current_date.year,
+            "notes": "Test payroll run for API testing"
+        }
+        
+        success, data, response = self.run_test(
+            "Create Payroll Run",
+            "POST",
+            "payroll/runs", 
+            201,
+            data=run_data
+        )
+        
+        run_id = None
+        if success and isinstance(data, dict):
+            run_id = data.get('run_id')
+            if (run_id and data.get('status') == 'draft' and 
+                data.get('month') == run_data['month'] and
+                len(data.get('employees', [])) > 0):
+                print("   ✓ Payroll run created with employees")
+            else:
+                print("   ⚠ Payroll run creation response incorrect")
+                return False
+        else:
+            return False
+            
+        # Test payroll run listing
+        list_success, list_data, list_response = self.run_test(
+            "List Payroll Runs",
+            "GET",
+            "payroll/runs",
+            200
+        )
+        
+        if list_success and isinstance(list_data, list) and len(list_data) > 0:
+            print("   ✓ Payroll runs listed successfully")
+        else:
+            print("   ⚠ Failed to list payroll runs")
+            return False
+            
+        # Test status updates - process the run
+        process_success, process_data, process_response = self.run_test(
+            "Process Payroll Run",
+            "PATCH",
+            f"payroll/runs/{run_id}/status?status=processed",
+            200
+        )
+        
+        if process_success and isinstance(process_data, dict) and process_data.get('status') == 'processed':
+            print("   ✓ Payroll run processed successfully")
+        else:
+            print("   ⚠ Failed to process payroll run")
+            return False
+            
+        # Test marking as paid
+        paid_success, paid_data, paid_response = self.run_test(
+            "Mark Payroll Run as Paid",
+            "PATCH", 
+            f"payroll/runs/{run_id}/status?status=paid",
+            200
+        )
+        
+        if paid_success and isinstance(paid_data, dict) and paid_data.get('status') == 'paid':
+            print("   ✓ Payroll run marked as paid successfully")
+            return True
+        else:
+            print("   ⚠ Failed to mark payroll run as paid")
+            return False
+            
+    def test_file_upload(self):
+        """Test file upload functionality"""
+        print("\n--- Testing File Upload ---")
+        
+        # Create a simple test file content
+        test_file_content = b"Test receipt content for API testing"
+        
+        # Test file upload endpoint
+        files = {'file': ('test_receipt.txt', test_file_content, 'text/plain')}
+        headers = {}  # Don't set Content-Type for multipart uploads
+        
+        try:
+            url = f"{self.base_url}/upload"
+            print(f"   URL: {url}")
+            
+            response = self.session.post(url, files=files, timeout=10)
+            
+            success = response.status_code == 200
+            self.tests_run += 1
+            
+            if success:
+                self.tests_passed += 1
+                print(f"✅ Passed - File Upload - Status: {response.status_code}")
+                
+                try:
+                    response_data = response.json()
+                    if (response_data.get('file_id') and 
+                        response_data.get('file_url') and
+                        response_data.get('filename') == 'test_receipt.txt'):
+                        print("   ✓ File upload returned correct response data")
+                        print(f"   File URL: {response_data.get('file_url')}")
+                        return True, response_data
+                    else:
+                        print("   ⚠ File upload response missing expected fields")
+                        return False, None
+                        
+                except Exception as e:
+                    print(f"   ⚠ Failed to parse upload response: {e}")
+                    return False, None
+            else:
+                self.tests_failed += 1
+                self.failed_tests.append("File Upload")
+                print(f"❌ Failed - File Upload - Expected 200, got {response.status_code}")
+                try:
+                    error_data = response.json()
+                    print(f"   Error: {error_data}")
+                except:
+                    print(f"   Response: {response.text[:200]}")
+                return False, None
+                
+        except Exception as e:
+            self.tests_failed += 1
+            self.failed_tests.append("File Upload")
+            print(f"❌ Failed - File Upload - Error: {str(e)}")
+            return False, None
+            
+    def test_send_invoice_email(self, invoice_id):
+        """Test sending invoice email"""
+        print("\n--- Testing Invoice Email Sending ---")
+        
+        if not invoice_id:
+            print("   ⚠ No invoice ID provided, skipping email test")
+            return False
+            
+        email_data = {
+            "recipient_email": "test@example.com"
+        }
+        
+        success, data, response = self.run_test(
+            "Send Invoice Email",
+            "POST",
+            f"invoices/{invoice_id}/send",
+            200,
+            data=email_data
+        )
+        
+        if success and isinstance(data, dict):
+            if data.get('ok') and 'queued for delivery' in data.get('message', ''):
+                print("   ✓ Invoice email queued successfully")
+                return True
+            else:
+                print("   ⚠ Email send response unexpected")
+        
+        return success
 
     def test_group_management(self):
         """Test group management endpoints"""
