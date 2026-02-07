@@ -788,7 +788,7 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {/* Team Members */}
+      {/* Team Members / User Management */}
       <Card className="card">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -800,118 +800,326 @@ export default function SettingsPage() {
               <CardDescription className="text-slate-400">{t('settings.manageTeam')}</CardDescription>
             </div>
             {isAdmin && (
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button data-testid="invite-user-btn" className="bg-orange-500 hover:bg-orange-600">
-                    <UserPlus size={16} className="mr-2" />
-                    {t('settings.inviteUser')}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md bg-slate-900 border-slate-700">
-                  <DialogHeader>
-                    <DialogTitle className="heading">{t('settings.inviteUser')}</DialogTitle>
-                  </DialogHeader>
-                  {tempPassword ? (
-                    <div className="space-y-4">
-                      <p className="text-slate-400">{t('settings.userCreated')}</p>
-                      <div className="p-4 bg-slate-800 rounded-lg">
-                        <Label className="text-sm text-slate-500">{t('settings.tempPassword')}</Label>
-                        <div className="flex items-center gap-2 mt-2">
-                          <code className="flex-1 p-2 bg-slate-900 rounded font-mono text-sm">
-                            {tempPassword}
-                          </code>
-                          <Button variant="ghost" size="sm" onClick={copyPassword}>
-                            {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
-                          </Button>
-                        </div>
-                      </div>
-                      <Button onClick={closeDialog} className="w-full bg-orange-500 hover:bg-orange-600">
-                        {t('common.close')}
-                      </Button>
-                    </div>
-                  ) : (
-                    <form onSubmit={handleInvite} className="space-y-4">
+              <div className="flex gap-2">
+                {/* Create User Button */}
+                <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button data-testid="create-user-btn" variant="outline" className="border-slate-600">
+                      <UserCog size={16} className="mr-2" />
+                      {t('settings.createUser')}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md bg-slate-900 border-slate-700">
+                    <DialogHeader>
+                      <DialogTitle className="heading">{t('settings.createUser')}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleCreateUser} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="inv-name">{t('common.name')} *</Label>
+                        <Label htmlFor="create-name">{t('common.name')} *</Label>
                         <Input
-                          id="inv-name"
-                          data-testid="invite-name-input"
-                          value={newMember.name}
-                          onChange={(e) => setNewMember({...newMember, name: e.target.value})}
+                          id="create-name"
+                          data-testid="create-user-name"
+                          value={newUserData.name}
+                          onChange={(e) => setNewUserData({...newUserData, name: e.target.value})}
                           placeholder={t('common.name')}
                           required
                           className="bg-slate-800 border-slate-700"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="inv-email">{t('common.email')} *</Label>
+                        <Label htmlFor="create-email">{t('common.email')} *</Label>
                         <Input
-                          id="inv-email"
-                          data-testid="invite-email-input"
+                          id="create-email"
+                          data-testid="create-user-email"
                           type="email"
-                          value={newMember.email}
-                          onChange={(e) => setNewMember({...newMember, email: e.target.value})}
+                          value={newUserData.email}
+                          onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
                           placeholder="name@company.com"
                           required
                           className="bg-slate-800 border-slate-700"
                         />
                       </div>
                       <div className="space-y-2">
+                        <Label htmlFor="create-password">{t('common.password')} *</Label>
+                        <Input
+                          id="create-password"
+                          data-testid="create-user-password"
+                          type="password"
+                          value={newUserData.password}
+                          onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                          placeholder={t('common.password')}
+                          required
+                          minLength={8}
+                          className="bg-slate-800 border-slate-700"
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <Label>{t('settings.role')}</Label>
                         <Select
-                          value={newMember.role}
-                          onValueChange={(value) => setNewMember({...newMember, role: value})}
+                          value={newUserData.role}
+                          onValueChange={(value) => setNewUserData({...newUserData, role: value})}
                         >
-                          <SelectTrigger data-testid="invite-role-select" className="bg-slate-800 border-slate-700">
+                          <SelectTrigger data-testid="create-user-role" className="bg-slate-800 border-slate-700">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="employee">{t('settings.roleEmployee')}</SelectItem>
+                            <SelectItem value="hr">{t('settings.roleHR')}</SelectItem>
                             <SelectItem value="member">{t('settings.roleMember')}</SelectItem>
                             <SelectItem value="admin">{t('settings.roleAdmin')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={closeDialog}>
+                        <Button type="button" variant="outline" onClick={() => setCreateUserDialogOpen(false)}>
                           {t('common.cancel')}
                         </Button>
-                        <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={inviting}>
-                          {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                          {t('settings.sendInvite')}
+                        <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={creatingUser}>
+                          {creatingUser ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          {t('settings.createUser')}
                         </Button>
                       </div>
                     </form>
-                  )}
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+                
+                {/* Invite User Button */}
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button data-testid="invite-user-btn" className="bg-orange-500 hover:bg-orange-600">
+                      <UserPlus size={16} className="mr-2" />
+                      {t('settings.inviteUser')}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md bg-slate-900 border-slate-700">
+                    <DialogHeader>
+                      <DialogTitle className="heading">{t('settings.inviteUser')}</DialogTitle>
+                    </DialogHeader>
+                    {tempPassword ? (
+                      <div className="space-y-4">
+                        <p className="text-slate-400">{t('settings.userCreated')}</p>
+                        <div className="p-4 bg-slate-800 rounded-lg">
+                          <Label className="text-sm text-slate-500">{t('settings.tempPassword')}</Label>
+                          <div className="flex items-center gap-2 mt-2">
+                            <code className="flex-1 p-2 bg-slate-900 rounded font-mono text-sm">
+                              {tempPassword}
+                            </code>
+                            <Button variant="ghost" size="sm" onClick={copyPassword}>
+                              {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                            </Button>
+                          </div>
+                        </div>
+                        <Button onClick={closeDialog} className="w-full bg-orange-500 hover:bg-orange-600">
+                          {t('common.close')}
+                        </Button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleInvite} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="inv-name">{t('common.name')} *</Label>
+                          <Input
+                            id="inv-name"
+                            data-testid="invite-name-input"
+                            value={newMember.name}
+                            onChange={(e) => setNewMember({...newMember, name: e.target.value})}
+                            placeholder={t('common.name')}
+                            required
+                            className="bg-slate-800 border-slate-700"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="inv-email">{t('common.email')} *</Label>
+                          <Input
+                            id="inv-email"
+                            data-testid="invite-email-input"
+                            type="email"
+                            value={newMember.email}
+                            onChange={(e) => setNewMember({...newMember, email: e.target.value})}
+                            placeholder="name@company.com"
+                            required
+                            className="bg-slate-800 border-slate-700"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t('settings.role')}</Label>
+                          <Select
+                            value={newMember.role}
+                            onValueChange={(value) => setNewMember({...newMember, role: value})}
+                          >
+                            <SelectTrigger data-testid="invite-role-select" className="bg-slate-800 border-slate-700">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="employee">{t('settings.roleEmployee')}</SelectItem>
+                              <SelectItem value="hr">{t('settings.roleHR')}</SelectItem>
+                              <SelectItem value="member">{t('settings.roleMember')}</SelectItem>
+                              <SelectItem value="admin">{t('settings.roleAdmin')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-4">
+                          <Button type="button" variant="outline" onClick={closeDialog}>
+                            {t('common.cancel')}
+                          </Button>
+                          <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={inviting}>
+                            {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            {t('settings.sendInvite')}
+                          </Button>
+                        </div>
+                      </form>
+                    )}
+                  </DialogContent>
+                </Dialog>
+              </div>
             )}
           </div>
         </CardHeader>
         <CardContent>
+          {/* Show inactive users toggle */}
+          {isAdmin && (
+            <div className="flex items-center gap-2 mb-4 p-3 bg-slate-800/30 rounded-lg">
+              <Checkbox
+                id="show-inactive"
+                checked={showInactiveUsers}
+                onCheckedChange={setShowInactiveUsers}
+              />
+              <Label htmlFor="show-inactive" className="text-sm text-slate-400 cursor-pointer">
+                {t('settings.showInactiveUsers')}
+              </Label>
+            </div>
+          )}
+          
           <div className="space-y-3">
-            {members.map((member) => (
-              <div 
-                key={member.user_id} 
-                className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg"
-                data-testid={`member-${member.user_id}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-white font-medium">
-                    {member.name?.charAt(0).toUpperCase()}
+            {members.map((member) => {
+              const isInactive = member.is_active === false;
+              const roleColors = {
+                owner: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+                admin: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                hr: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                member: 'bg-green-500/20 text-green-300 border-green-500/30',
+                employee: 'bg-slate-500/20 text-slate-300 border-slate-500/30'
+              };
+              const roleIcons = {
+                owner: <Shield size={12} />,
+                admin: <UserCog size={12} />,
+                hr: <Briefcase size={12} />,
+                member: <User size={12} />,
+                employee: <User size={12} />
+              };
+              
+              return (
+                <div 
+                  key={member.user_id} 
+                  className={`flex items-center justify-between p-3 rounded-lg transition-all ${
+                    isInactive ? 'bg-slate-800/30 opacity-60' : 'bg-slate-800/50'
+                  }`}
+                  data-testid={`member-${member.user_id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${
+                      isInactive ? 'bg-slate-600' : 'bg-slate-700'
+                    }`}>
+                      {member.name?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{member.name}</p>
+                        {isInactive && (
+                          <span className="text-xs px-2 py-0.5 bg-red-500/20 text-red-300 rounded border border-red-500/30">
+                            {t('settings.inactive')}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-500">{member.email}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">{member.name}</p>
-                    <p className="text-sm text-slate-500">{member.email}</p>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Role badge */}
+                    <span className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${roleColors[member.role] || roleColors.employee}`}>
+                      {roleIcons[member.role]}
+                      {t(`settings.role${member.role.charAt(0).toUpperCase() + member.role.slice(1)}`)}
+                    </span>
+                    
+                    {/* Admin actions dropdown */}
+                    {isAdmin && member.role !== 'owner' && member.user_id !== user?.user_id && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical size={16} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                          {/* Change Role */}
+                          <DropdownMenuItem 
+                            className="text-slate-200 focus:bg-slate-700 cursor-pointer"
+                            onSelect={() => setEditingUser(member)}
+                          >
+                            <Edit size={14} className="mr-2" />
+                            {t('settings.changeRole')}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="bg-slate-700" />
+                          {/* Activate/Deactivate */}
+                          <DropdownMenuItem 
+                            className={`cursor-pointer ${isInactive ? 'text-green-400 focus:bg-green-500/20' : 'text-red-400 focus:bg-red-500/20'}`}
+                            onSelect={() => handleToggleUserStatus(member.user_id, !isInactive)}
+                          >
+                            <Power size={14} className="mr-2" />
+                            {isInactive ? t('settings.activateUser') : t('settings.deactivateUser')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
-                <span className={`status-badge ${member.role === 'owner' ? 'paid' : member.role === 'admin' ? 'sent' : 'draft'}`}>
-                  {member.role}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
+      
+      {/* Edit Role Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent className="max-w-sm bg-slate-900 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="heading">{t('settings.changeRole')}</DialogTitle>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-4">
+              <p className="text-slate-400">
+                {t('settings.changeRoleFor')} <strong>{editingUser.name}</strong>
+              </p>
+              <Select
+                value={editingUser.role}
+                onValueChange={(value) => setEditingUser({...editingUser, role: value})}
+              >
+                <SelectTrigger className="bg-slate-800 border-slate-700">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">{t('settings.roleEmployee')}</SelectItem>
+                  <SelectItem value="hr">{t('settings.roleHR')}</SelectItem>
+                  <SelectItem value="member">{t('settings.roleMember')}</SelectItem>
+                  <SelectItem value="admin">{t('settings.roleAdmin')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setEditingUser(null)}>
+                  {t('common.cancel')}
+                </Button>
+                <Button 
+                  className="bg-orange-500 hover:bg-orange-600"
+                  disabled={updatingRole}
+                  onClick={() => handleUpdateUserRole(editingUser.user_id, editingUser.role)}
+                >
+                  {updatingRole ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {t('common.save')}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
