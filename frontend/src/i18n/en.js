@@ -42,6 +42,7 @@ export const en = {
     payroll: "Payroll",
     expenses: "Expenses",
     projects: "Projects",
+    workLog: "Work Log",
     checklists: "Checklists",
     hseDocuments: "HSE Documents",
     settings: "Settings",
