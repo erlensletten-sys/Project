@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '@/i18n';
 import { getInvoices, formatCurrency, formatDate, updateInvoiceStatus } from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -21,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 export default function InvoicesPage() {
+  const { t } = useLanguage();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -58,7 +60,14 @@ export default function InvoicesPage() {
   );
 
   const getStatusBadge = (status) => {
-    return <span className={`status-badge ${status}`}>{status}</span>;
+    const statusLabels = {
+      draft: t('invoices.draft'),
+      sent: t('invoices.sent'),
+      paid: t('invoices.paid'),
+      overdue: t('invoices.overdue'),
+      cancelled: t('invoices.cancelled')
+    };
+    return <span className={`status-badge ${status}`}>{statusLabels[status] || status}</span>;
   };
 
   if (loading) {
@@ -74,13 +83,13 @@ export default function InvoicesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="heading text-3xl font-bold text-slate-900">Invoices</h1>
-          <p className="text-slate-500 mt-1">Manage your invoices and track payments</p>
+          <h1 className="heading text-3xl font-bold text-slate-900">{t('invoices.title')}</h1>
+          <p className="text-slate-500 mt-1">{t('invoices.subtitle')}</p>
         </div>
         <Link to="/invoices/new">
           <Button data-testid="create-invoice-btn" className="bg-orange-500 hover:bg-orange-600">
             <Plus size={16} className="mr-2" />
-            New Invoice
+            {t('invoices.createInvoice')}
           </Button>
         </Link>
       </div>
@@ -93,7 +102,7 @@ export default function InvoicesPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <Input
                 data-testid="search-invoices"
-                placeholder="Search by customer or invoice number..."
+                placeholder={t('common.search') + '...'}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
@@ -101,14 +110,14 @@ export default function InvoicesPage() {
             </div>
             <Select value={filter} onValueChange={setFilter}>
               <SelectTrigger data-testid="filter-status" className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder={t('common.filter')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Invoices</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="sent">Sent</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
+                <SelectItem value="all">{t('common.all')} {t('invoices.title')}</SelectItem>
+                <SelectItem value="draft">{t('invoices.draft')}</SelectItem>
+                <SelectItem value="sent">{t('invoices.sent')}</SelectItem>
+                <SelectItem value="paid">{t('invoices.paid')}</SelectItem>
+                <SelectItem value="overdue">{t('invoices.overdue')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -121,12 +130,12 @@ export default function InvoicesPage() {
           {filteredInvoices.length === 0 ? (
             <div className="empty-state py-16">
               <FileText size={48} className="text-slate-300" strokeWidth={1} />
-              <h3 className="font-medium text-slate-900 mt-4">No invoices found</h3>
-              <p className="text-sm mt-1">Create your first invoice to get started</p>
+              <h3 className="font-medium text-slate-900 mt-4">{t('invoices.noInvoices')}</h3>
+              <p className="text-sm mt-1">{t('invoices.createFirst')}</p>
               <Link to="/invoices/new" className="mt-4">
                 <Button className="bg-orange-500 hover:bg-orange-600">
                   <Plus size={16} className="mr-2" />
-                  Create Invoice
+                  {t('invoices.createInvoice')}
                 </Button>
               </Link>
             </div>
@@ -134,12 +143,12 @@ export default function InvoicesPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Invoice</th>
-                  <th>Customer</th>
-                  <th>Date</th>
-                  <th>Due Date</th>
-                  <th>Status</th>
-                  <th className="text-right">Amount</th>
+                  <th>{t('invoices.invoiceNumber')}</th>
+                  <th>{t('invoices.customer')}</th>
+                  <th>{t('common.date')}</th>
+                  <th>{t('invoices.dueDate')}</th>
+                  <th>{t('common.status')}</th>
+                  <th className="text-right">{t('common.amount')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -170,18 +179,18 @@ export default function InvoicesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link to={`/invoices/${invoice.invoice_id}`}>View Details</Link>
+                            <Link to={`/invoices/${invoice.invoice_id}`}>{t('common.view')}</Link>
                           </DropdownMenuItem>
                           {invoice.status === 'draft' && (
                             <DropdownMenuItem onClick={() => handleStatusChange(invoice.invoice_id, 'sent')}>
                               <Send size={14} className="mr-2" />
-                              Mark as Sent
+                              {t('invoices.markAsSent')}
                             </DropdownMenuItem>
                           )}
                           {invoice.status === 'sent' && (
                             <DropdownMenuItem onClick={() => handleStatusChange(invoice.invoice_id, 'paid')}>
                               <CheckCircle size={14} className="mr-2" />
-                              Mark as Paid
+                              {t('invoices.markAsPaid')}
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
