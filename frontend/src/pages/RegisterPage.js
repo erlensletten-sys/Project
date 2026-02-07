@@ -50,25 +50,51 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left side - Image */}
+      {/* Left side - Abstract illustration */}
       <div 
-        className="hidden lg:flex lg:w-1/2 bg-cover bg-center"
-        style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1766330977451-de1b64b5e641?crop=entropy&cs=srgb&fm=jpg&q=85)' }}
+        className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-800 to-orange-900 relative overflow-hidden"
       >
-        <div className="w-full h-full bg-slate-900/70 flex items-end p-12">
-          <div>
-            <h2 className="heading text-4xl font-bold text-white mb-4">
-              Built for Nordic businesses
-            </h2>
-            <p className="text-slate-300 text-lg">
-              Complete business management tailored for construction, field services, and SMBs.
-            </p>
+        {/* Abstract geometric shapes */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-10 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-40 right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-orange-400/15 rounded-full blur-2xl"></div>
+          
+          {/* Grid pattern */}
+          <svg className="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
+          
+          {/* Decorative lines */}
+          <div className="absolute top-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-orange-500/30 to-transparent"></div>
+          <div className="absolute top-2/3 left-0 w-full h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent"></div>
+        </div>
+        
+        {/* Content */}
+        <div className="relative w-full h-full flex flex-col justify-end p-12 z-10">
+          {/* Icon/Logo */}
+          <div className="mb-8">
+            <div className="w-20 h-20 bg-orange-500/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-orange-500/30">
+              <Building2 className="text-orange-400" size={40} strokeWidth={1.5} />
+            </div>
           </div>
+          
+          <h2 className="heading text-4xl font-bold text-white mb-4">
+            Built for Nordic businesses
+          </h2>
+          <p className="text-slate-300 text-lg max-w-md">
+            Complete business management tailored for construction, field services, and SMBs.
+          </p>
         </div>
       </div>
 
       {/* Right side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-slate-50">
+      <div className="flex-1 flex items-center justify-center p-8 bg-slate-900">
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
