@@ -8,6 +8,8 @@ import {
   deleteWorkLog,
   getProjects,
   getAkkordPricing,
+  getGroupSettings,
+  getGroupEmployees,
   formatCurrency, 
   formatDate 
 } from '@/lib/api';
@@ -37,11 +39,11 @@ import {
   Loader2, 
   Trash2,
   Calculator,
-  CalendarDays,
   FolderKanban,
   Square,
   Users,
-  Clock
+  Clock,
+  Briefcase
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -55,6 +57,8 @@ export default function WorkLogPage() {
   const [allLogs, setAllLogs] = useState([]);
   const [projects, setProjects] = useState([]);
   const [pricing, setPricing] = useState(null);
+  const [groupSettings, setGroupSettings] = useState(null);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -65,10 +69,12 @@ export default function WorkLogPage() {
     project_id: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
+    work_type: 'akkord', // 'akkord' or 'hourly'
     area: '',
     base_operation: '',
     addons: [],
-    hours_worked: ''
+    total_hours: '',
+    selectedWorkers: {} // { user_id: hours }
   });
 
   useEffect(() => {
@@ -77,14 +83,18 @@ export default function WorkLogPage() {
 
   const loadData = async () => {
     try {
-      const [myLogsData, projectsData, pricingData] = await Promise.all([
+      const [myLogsData, projectsData, pricingData, settingsData, employeesData] = await Promise.all([
         getMyWorkLogs(),
         getProjects(),
-        getAkkordPricing()
+        getAkkordPricing(),
+        getGroupSettings(),
+        getGroupEmployees()
       ]);
       setMyLogs(myLogsData);
       setProjects(projectsData);
       setPricing(pricingData);
+      setGroupSettings(settingsData);
+      setEmployees(employeesData);
       
       if (isAdmin) {
         const allLogsData = await getWorkLogs();
@@ -108,8 +118,14 @@ export default function WorkLogPage() {
   };
 
   const calculateTotal = () => {
-    const area = parseFloat(newLog.area) || 0;
-    return area * calculateRate();
+    if (newLog.work_type === 'akkord') {
+      const area = parseFloat(newLog.area) || 0;
+      return area * calculateRate();
+    } else {
+      const hours = parseFloat(newLog.total_hours) || 0;
+      const hourlyRate = groupSettings?.hourly_rate || 0;
+      return hours * hourlyRate;
+    }
   };
 
   const handleAddonToggle = (addonId) => {
@@ -121,21 +137,59 @@ export default function WorkLogPage() {
     });
   };
 
+  const handleWorkerToggle = (userId, checked) => {
+    setNewLog(prev => {
+      const selectedWorkers = { ...prev.selectedWorkers };
+      if (checked) {
+        selectedWorkers[userId] = 0; // Default 0 hours
+      } else {
+        delete selectedWorkers[userId];
+      }
+      return { ...prev, selectedWorkers };
+    });
+  };
+
+  const handleWorkerHoursChange = (userId, hours) => {
+    setNewLog(prev => ({
+      ...prev,
+      selectedWorkers: {
+        ...prev.selectedWorkers,
+        [userId]: parseFloat(hours) || 0
+      }
+    }));
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     
-    if (!newLog.project_id || !newLog.base_operation || !newLog.area || !newLog.hours_worked) {
+    if (!newLog.project_id || !newLog.total_hours) {
       toast.error(t('workLog.fillRequired'));
       return;
     }
 
+    if (newLog.work_type === 'akkord' && !newLog.base_operation) {
+      toast.error(t('workLog.selectOperation'));
+      return;
+    }
+
+    // Build workers array
+    const workers = Object.entries(newLog.selectedWorkers).map(([user_id, hours]) => ({
+      user_id,
+      hours: hours || 0
+    }));
+
     setCreating(true);
     try {
       await createWorkLog({
-        ...newLog,
+        project_id: newLog.project_id,
         date: new Date(newLog.date).toISOString(),
-        area: parseFloat(newLog.area),
-        hours_worked: parseFloat(newLog.hours_worked)
+        description: newLog.description,
+        work_type: newLog.work_type,
+        area: newLog.work_type === 'akkord' ? parseFloat(newLog.area) || 0 : 0,
+        base_operation: newLog.work_type === 'akkord' ? newLog.base_operation : null,
+        addons: newLog.work_type === 'akkord' ? newLog.addons : [],
+        total_hours: parseFloat(newLog.total_hours) || 0,
+        workers
       });
       toast.success(t('workLog.created'));
       setDialogOpen(false);
@@ -165,20 +219,23 @@ export default function WorkLogPage() {
       project_id: '',
       date: new Date().toISOString().split('T')[0],
       description: '',
+      work_type: 'akkord',
       area: '',
       base_operation: '',
       addons: [],
-      hours_worked: ''
+      total_hours: '',
+      selectedWorkers: {}
     });
   };
 
   const getOperationLabel = (id) => {
+    if (!id) return '-';
     const op = pricing?.base_operations.find(b => b.id === id);
     return op?.name || id;
   };
 
   const getAddonsLabel = (addons) => {
-    if (!pricing || addons.length === 0) return '-';
+    if (!pricing || !addons || addons.length === 0) return '-';
     return addons.map(id => {
       const addon = pricing.addons.find(a => a.id === id);
       return addon?.name || id;
@@ -195,9 +252,9 @@ export default function WorkLogPage() {
 
   // Calculate totals for my logs
   const myTotals = {
-    area: filteredMyLogs.reduce((sum, log) => sum + log.area, 0),
-    hours: filteredMyLogs.reduce((sum, log) => sum + log.hours_worked, 0),
-    payment: filteredMyLogs.reduce((sum, log) => sum + log.total_payment, 0)
+    area: filteredMyLogs.reduce((sum, log) => sum + (log.area || 0), 0),
+    hours: filteredMyLogs.reduce((sum, log) => sum + (log.total_hours || 0), 0),
+    payment: filteredMyLogs.reduce((sum, log) => sum + (log.total_payment || 0), 0)
   };
 
   if (loading) {
@@ -223,7 +280,7 @@ export default function WorkLogPage() {
               {t('workLog.addWork')}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg bg-slate-900 border-slate-700 max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl bg-slate-900 border-slate-700 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="heading">{t('workLog.addWork')}</DialogTitle>
             </DialogHeader>
@@ -262,83 +319,166 @@ export default function WorkLogPage() {
                 />
               </div>
 
-              {/* Base Operation */}
+              {/* Work Type Toggle */}
               <div className="space-y-2">
-                <Label>{t('workLog.baseOperation')} *</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {pricing?.base_operations.map(op => (
-                    <Button
-                      key={op.id}
-                      type="button"
-                      variant={newLog.base_operation === op.id ? "default" : "outline"}
-                      className={`h-auto py-3 flex flex-col ${newLog.base_operation === op.id ? 'bg-orange-500 hover:bg-orange-600' : 'border-slate-700 hover:bg-slate-800'}`}
-                      onClick={() => setNewLog({...newLog, base_operation: op.id})}
-                    >
-                      <span className="font-medium">{op.name}</span>
-                      <span className="text-xs opacity-70">{op.price} kr/m²</span>
-                    </Button>
-                  ))}
+                <Label>{t('workLog.workType')}</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={newLog.work_type === 'akkord' ? 'default' : 'outline'}
+                    onClick={() => setNewLog({...newLog, work_type: 'akkord'})}
+                    className={newLog.work_type === 'akkord' ? 'bg-orange-500 hover:bg-orange-600' : 'border-slate-700'}
+                  >
+                    <Square size={16} className="mr-2" />
+                    {t('workLog.pieceRate')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={newLog.work_type === 'hourly' ? 'default' : 'outline'}
+                    onClick={() => setNewLog({...newLog, work_type: 'hourly'})}
+                    className={newLog.work_type === 'hourly' ? 'bg-orange-500 hover:bg-orange-600' : 'border-slate-700'}
+                  >
+                    <Clock size={16} className="mr-2" />
+                    {t('workLog.hourlyWork')}
+                  </Button>
                 </div>
               </div>
 
-              {/* Add-ons */}
-              <div className="space-y-2">
-                <Label>{t('workLog.addons')}</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {pricing?.addons.map(addon => (
-                    <label 
-                      key={addon.id}
-                      className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer border transition-colors ${
-                        newLog.addons.includes(addon.id) 
-                          ? 'bg-orange-500/20 border-orange-500/50' 
-                          : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
-                      }`}
-                    >
-                      <Checkbox
-                        checked={newLog.addons.includes(addon.id)}
-                        onCheckedChange={() => handleAddonToggle(addon.id)}
-                      />
-                      <div className="flex-1">
-                        <span className="text-sm font-medium">{addon.name}</span>
-                        <span className="text-xs text-slate-400 ml-2">+{addon.price} kr/m²</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              {/* Akkord-specific fields */}
+              {newLog.work_type === 'akkord' && (
+                <>
+                  {/* Base Operation */}
+                  <div className="space-y-2">
+                    <Label>{t('workLog.baseOperation')} *</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {pricing?.base_operations.map(op => (
+                        <Button
+                          key={op.id}
+                          type="button"
+                          variant={newLog.base_operation === op.id ? "default" : "outline"}
+                          className={`h-auto py-3 flex flex-col ${newLog.base_operation === op.id ? 'bg-orange-500 hover:bg-orange-600' : 'border-slate-700 hover:bg-slate-800'}`}
+                          onClick={() => setNewLog({...newLog, base_operation: op.id})}
+                        >
+                          <span className="font-medium">{op.name}</span>
+                          <span className="text-xs opacity-70">{op.price} kr/m²</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
 
-              {/* Area */}
-              <div className="space-y-2">
-                <Label htmlFor="work-area">{t('workLog.area')} (m²) *</Label>
-                <Input
-                  id="work-area"
-                  data-testid="work-area-input"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={newLog.area}
-                  onChange={(e) => setNewLog({...newLog, area: e.target.value})}
-                  placeholder="0"
-                  required
-                  className="bg-slate-800 border-slate-700"
-                />
-              </div>
+                  {/* Add-ons */}
+                  <div className="space-y-2">
+                    <Label>{t('workLog.addons')}</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {pricing?.addons.map(addon => (
+                        <label 
+                          key={addon.id}
+                          className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer border transition-colors ${
+                            newLog.addons.includes(addon.id) 
+                              ? 'bg-orange-500/20 border-orange-500/50' 
+                              : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+                          }`}
+                        >
+                          <Checkbox
+                            checked={newLog.addons.includes(addon.id)}
+                            onCheckedChange={() => handleAddonToggle(addon.id)}
+                          />
+                          <div className="flex-1">
+                            <span className="text-sm font-medium">{addon.name}</span>
+                            <span className="text-xs text-slate-400 ml-2">+{addon.price} kr/m²</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
 
-              {/* Hours Worked */}
+                  {/* Area */}
+                  <div className="space-y-2">
+                    <Label htmlFor="work-area">{t('workLog.area')} (m²) *</Label>
+                    <Input
+                      id="work-area"
+                      data-testid="work-area-input"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={newLog.area}
+                      onChange={(e) => setNewLog({...newLog, area: e.target.value})}
+                      placeholder="0"
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Hourly-specific info */}
+              {newLog.work_type === 'hourly' && (
+                <Card className="bg-blue-500/10 border-blue-500/30">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2">
+                      <Briefcase size={18} className="text-blue-400" />
+                      <span className="text-slate-300">{t('workLog.hourlyRate')}:</span>
+                      <span className="font-bold text-blue-400">{formatCurrency(groupSettings?.hourly_rate || 0)}/time</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Total Hours */}
               <div className="space-y-2">
-                <Label htmlFor="work-hours">{t('workLog.hoursWorked')} *</Label>
+                <Label htmlFor="work-hours">{t('workLog.totalHoursJob')} *</Label>
                 <Input
                   id="work-hours"
                   data-testid="work-hours-input"
                   type="number"
                   min="0"
                   step="0.5"
-                  value={newLog.hours_worked}
-                  onChange={(e) => setNewLog({...newLog, hours_worked: e.target.value})}
+                  value={newLog.total_hours}
+                  onChange={(e) => setNewLog({...newLog, total_hours: e.target.value})}
                   placeholder="0"
                   required
                   className="bg-slate-800 border-slate-700"
                 />
+              </div>
+
+              {/* Workers Selection */}
+              <div className="space-y-2">
+                <Label>{t('workLog.selectWorkers')}</Label>
+                <div className="space-y-2 max-h-48 overflow-y-auto p-2 bg-slate-800/50 rounded-lg border border-slate-700">
+                  {employees.map(emp => (
+                    <div 
+                      key={emp.user_id}
+                      className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                        newLog.selectedWorkers[emp.user_id] !== undefined
+                          ? 'bg-orange-500/20 border border-orange-500/50'
+                          : 'bg-slate-800 border border-slate-700'
+                      }`}
+                    >
+                      <Checkbox
+                        checked={newLog.selectedWorkers[emp.user_id] !== undefined}
+                        onCheckedChange={(checked) => handleWorkerToggle(emp.user_id, checked)}
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium">{emp.name}</p>
+                        <p className="text-xs text-slate-500">{emp.email}</p>
+                      </div>
+                      {newLog.selectedWorkers[emp.user_id] !== undefined && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={newLog.selectedWorkers[emp.user_id] || ''}
+                            onChange={(e) => handleWorkerHoursChange(emp.user_id, e.target.value)}
+                            placeholder="0"
+                            className="w-20 h-8 bg-slate-700 border-slate-600 text-sm"
+                          />
+                          <span className="text-xs text-slate-400">{t('workLog.hours')}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500">{t('workLog.workersHint')}</p>
               </div>
 
               {/* Description */}
@@ -355,7 +495,8 @@ export default function WorkLogPage() {
               </div>
 
               {/* Calculated Total */}
-              {newLog.base_operation && newLog.area && (
+              {((newLog.work_type === 'akkord' && newLog.base_operation && newLog.area) || 
+                (newLog.work_type === 'hourly' && newLog.total_hours)) && (
                 <Card className="bg-orange-500/10 border-orange-500/30">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
@@ -364,7 +505,11 @@ export default function WorkLogPage() {
                         <span className="text-slate-300">{t('workLog.calculatedPayment')}</span>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-slate-400">{calculateRate()} kr/m² × {newLog.area} m²</p>
+                        {newLog.work_type === 'akkord' ? (
+                          <p className="text-xs text-slate-400">{calculateRate()} kr/m² × {newLog.area} m²</p>
+                        ) : (
+                          <p className="text-xs text-slate-400">{formatCurrency(groupSettings?.hourly_rate || 0)}/t × {newLog.total_hours}t</p>
+                        )}
                         <p className="heading text-xl font-bold text-orange-400">{formatCurrency(calculateTotal())}</p>
                       </div>
                     </div>
@@ -469,10 +614,10 @@ export default function WorkLogPage() {
                     <tr>
                       <th>{t('common.date')}</th>
                       <th>{t('workLog.project')}</th>
-                      <th>{t('workLog.operation')}</th>
-                      <th>{t('workLog.area')}</th>
-                      <th>{t('workLog.rate')}</th>
-                      <th>{t('workLog.hoursWorked')}</th>
+                      <th>{t('workLog.type')}</th>
+                      <th>{t('workLog.details')}</th>
+                      <th>{t('workLog.totalHours')}</th>
+                      <th>{t('workLog.workers')}</th>
                       <th className="text-right">{t('workLog.payment')}</th>
                       <th></th>
                     </tr>
@@ -488,16 +633,30 @@ export default function WorkLogPage() {
                           </span>
                         </td>
                         <td>
-                          <div>
-                            <p className="font-medium">{getOperationLabel(log.base_operation)}</p>
-                            {log.addons.length > 0 && (
-                              <p className="text-xs text-slate-500">+ {getAddonsLabel(log.addons)}</p>
-                            )}
-                          </div>
+                          <span className={`status-badge ${log.work_type === 'akkord' ? 'sent' : 'pending'}`}>
+                            {log.work_type === 'akkord' ? t('workLog.pieceRate') : t('workLog.hourlyWork')}
+                          </span>
                         </td>
-                        <td>{log.area} m²</td>
-                        <td className="text-slate-400">{log.rate_per_sqm} kr/m²</td>
-                        <td>{log.hours_worked}t</td>
+                        <td>
+                          {log.work_type === 'akkord' ? (
+                            <div>
+                              <p className="font-medium">{getOperationLabel(log.base_operation)}</p>
+                              <p className="text-xs text-slate-500">{log.area} m² @ {log.rate_per_sqm} kr/m²</p>
+                            </div>
+                          ) : (
+                            <p className="text-slate-400">{formatCurrency(log.hourly_rate)}/t</p>
+                          )}
+                        </td>
+                        <td>{log.total_hours}t</td>
+                        <td>
+                          {log.workers && log.workers.length > 0 ? (
+                            <div className="text-xs">
+                              {log.workers.map((w, i) => (
+                                <span key={i} className="block">{w.user_name}: {w.hours}t</span>
+                              ))}
+                            </div>
+                          ) : '-'}
+                        </td>
                         <td className="text-right font-mono font-medium text-green-400">
                           {formatCurrency(log.total_payment)}
                         </td>
@@ -540,11 +699,11 @@ export default function WorkLogPage() {
                     <thead>
                       <tr>
                         <th>{t('common.date')}</th>
-                        <th>{t('workLog.employee')}</th>
+                        <th>{t('workLog.createdBy')}</th>
                         <th>{t('workLog.project')}</th>
-                        <th>{t('workLog.operation')}</th>
-                        <th>{t('workLog.area')}</th>
-                        <th>{t('workLog.hoursWorked')}</th>
+                        <th>{t('workLog.type')}</th>
+                        <th>{t('workLog.totalHours')}</th>
+                        <th>{t('workLog.workers')}</th>
                         <th className="text-right">{t('workLog.payment')}</th>
                       </tr>
                     </thead>
@@ -560,15 +719,22 @@ export default function WorkLogPage() {
                             </span>
                           </td>
                           <td>
-                            <div>
-                              <p className="font-medium">{getOperationLabel(log.base_operation)}</p>
-                              {log.addons.length > 0 && (
-                                <p className="text-xs text-slate-500">+ {getAddonsLabel(log.addons)}</p>
-                              )}
-                            </div>
+                            <span className={`status-badge ${log.work_type === 'akkord' ? 'sent' : 'pending'}`}>
+                              {log.work_type === 'akkord' ? t('workLog.pieceRate') : t('workLog.hourlyWork')}
+                            </span>
                           </td>
-                          <td>{log.area} m²</td>
-                          <td>{log.hours_worked}t</td>
+                          <td>{log.total_hours}t</td>
+                          <td>
+                            {log.workers && log.workers.length > 0 ? (
+                              <div className="text-xs">
+                                {log.workers.map((w, i) => (
+                                  <span key={i} className="block">
+                                    {w.user_name}: {w.hours}t ({w.share_percentage}%)
+                                  </span>
+                                ))}
+                              </div>
+                            ) : '-'}
+                          </td>
                           <td className="text-right font-mono font-medium text-green-400">
                             {formatCurrency(log.total_payment)}
                           </td>
