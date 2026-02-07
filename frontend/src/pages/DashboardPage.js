@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/i18n';
 import { getDashboardStats, formatCurrency } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { t, tVar } = useLanguage();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -53,17 +55,17 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="heading text-3xl font-bold text-slate-900">
-            Welcome back, {user?.name?.split(' ')[0]}
+            {t('dashboard.welcomeBack')}, {user?.name?.split(' ')[0]}
           </h1>
           <p className="text-slate-500 mt-1">
-            Here's what's happening with {user?.group_name} today.
+            {tVar('dashboard.todayOverview', { org: user?.group_name })}
           </p>
         </div>
         <div className="flex gap-3">
           <Link to="/invoices/new">
             <Button data-testid="new-invoice-btn" className="bg-orange-500 hover:bg-orange-600">
               <Plus size={16} className="mr-2" />
-              New Invoice
+              {t('dashboard.newInvoice')}
             </Button>
           </Link>
         </div>
@@ -75,12 +77,12 @@ export default function DashboardPage() {
         <Card className="card col-span-2" data-testid="revenue-card">
           <CardContent className="stat-card">
             <div className="flex items-center justify-between mb-4">
-              <span className="stat-label">Total Revenue</span>
+              <span className="stat-label">{t('dashboard.totalRevenue')}</span>
               <TrendingUp className="text-green-500" size={20} />
             </div>
             <span className="stat-value">{formatCurrency(stats?.invoices?.revenue || 0)}</span>
             <p className="text-sm text-slate-500 mt-2">
-              From {stats?.invoices?.total || 0} invoices
+              {tVar('dashboard.fromInvoices', { count: stats?.invoices?.total || 0 })}
             </p>
           </CardContent>
         </Card>
@@ -89,12 +91,12 @@ export default function DashboardPage() {
         <Card className="card" data-testid="pending-invoices-card">
           <CardContent className="stat-card">
             <div className="flex items-center justify-between mb-4">
-              <span className="stat-label">Pending</span>
+              <span className="stat-label">{t('dashboard.pending')}</span>
               <Clock className="text-amber-500" size={20} />
             </div>
             <span className="stat-value">{formatCurrency(stats?.invoices?.pending_value || 0)}</span>
             <p className="text-sm text-slate-500 mt-2">
-              {stats?.invoices?.pending || 0} invoices awaiting payment
+              {tVar('dashboard.awaitingPayment', { count: stats?.invoices?.pending || 0 })}
             </p>
           </CardContent>
         </Card>
@@ -103,12 +105,12 @@ export default function DashboardPage() {
         <Card className="card" data-testid="payroll-card">
           <CardContent className="stat-card">
             <div className="flex items-center justify-between mb-4">
-              <span className="stat-label">Monthly Payroll</span>
+              <span className="stat-label">{t('dashboard.monthlyPayroll')}</span>
               <Users className="text-blue-500" size={20} />
             </div>
             <span className="stat-value">{formatCurrency(stats?.payroll?.monthly_total || 0)}</span>
             <p className="text-sm text-slate-500 mt-2">
-              {stats?.payroll?.employees || 0} active employees
+              {tVar('dashboard.activeEmployees', { count: stats?.payroll?.employees || 0 })}
             </p>
           </CardContent>
         </Card>
@@ -124,8 +126,8 @@ export default function DashboardPage() {
                   <FileText className="text-orange-500" size={24} strokeWidth={1.5} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-slate-900">Invoices</h3>
-                  <p className="text-sm text-slate-500">{stats?.invoices?.total || 0} total</p>
+                  <h3 className="font-medium text-slate-900">{t('nav.invoices')}</h3>
+                  <p className="text-sm text-slate-500">{stats?.invoices?.total || 0} {t('common.total').toLowerCase()}</p>
                 </div>
                 <ArrowRight className="text-slate-400" size={20} />
               </div>
@@ -141,8 +143,8 @@ export default function DashboardPage() {
                   <FolderKanban className="text-purple-500" size={24} strokeWidth={1.5} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-slate-900">Projects</h3>
-                  <p className="text-sm text-slate-500">{stats?.projects?.active || 0} active</p>
+                  <h3 className="font-medium text-slate-900">{t('nav.projects')}</h3>
+                  <p className="text-sm text-slate-500">{stats?.projects?.active || 0} {t('projects.active').toLowerCase()}</p>
                 </div>
                 <ArrowRight className="text-slate-400" size={20} />
               </div>
@@ -158,8 +160,8 @@ export default function DashboardPage() {
                   <Receipt className="text-green-500" size={24} strokeWidth={1.5} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-slate-900">Expenses</h3>
-                  <p className="text-sm text-slate-500">{stats?.expenses?.pending_approval || 0} pending</p>
+                  <h3 className="font-medium text-slate-900">{t('nav.expenses')}</h3>
+                  <p className="text-sm text-slate-500">{stats?.expenses?.pending_approval || 0} {t('expenses.pending').toLowerCase()}</p>
                 </div>
                 <ArrowRight className="text-slate-400" size={20} />
               </div>
@@ -175,8 +177,8 @@ export default function DashboardPage() {
                   <ClipboardCheck className="text-blue-500" size={24} strokeWidth={1.5} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-slate-900">Checklists</h3>
-                  <p className="text-sm text-slate-500">{stats?.checklists?.in_progress || 0} in progress</p>
+                  <h3 className="font-medium text-slate-900">{t('nav.checklists')}</h3>
+                  <p className="text-sm text-slate-500">{stats?.checklists?.in_progress || 0} {t('projects.inProgress').toLowerCase()}</p>
                 </div>
                 <ArrowRight className="text-slate-400" size={20} />
               </div>
@@ -191,7 +193,7 @@ export default function DashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="heading text-lg flex items-center gap-2">
               <AlertTriangle className="text-amber-500" size={20} />
-              Attention Required
+              {t('dashboard.attentionRequired')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -200,12 +202,12 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <ShieldAlert className="text-amber-500" size={20} />
                   <span className="text-sm text-slate-700">
-                    {stats.hse.expiring_soon} HSE document(s) expiring within 30 days
+                    {tVar('dashboard.hseExpiring', { count: stats.hse.expiring_soon })}
                   </span>
                 </div>
                 <Link to="/hse">
                   <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700">
-                    Review
+                    {t('dashboard.review')}
                   </Button>
                 </Link>
               </div>
@@ -215,12 +217,12 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <Receipt className="text-amber-500" size={20} />
                   <span className="text-sm text-slate-700">
-                    {stats.expenses.pending_approval} expense(s) awaiting approval
+                    {tVar('dashboard.expensesPending', { count: stats.expenses.pending_approval })}
                   </span>
                 </div>
                 <Link to="/expenses">
                   <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700">
-                    Review
+                    {t('dashboard.review')}
                   </Button>
                 </Link>
               </div>

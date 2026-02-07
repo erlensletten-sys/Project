@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,7 +22,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      toast.success('Welcome back!');
+      toast.success(t('auth.welcomeBack') + '!');
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -65,10 +67,10 @@ export default function LoginPage() {
           </div>
           
           <h2 className="heading text-4xl font-bold text-white mb-4">
-            Streamline your business operations
+            {t('auth.heroTitle')}
           </h2>
           <p className="text-slate-300 text-lg max-w-md">
-            Invoicing, payroll, projects, and HSE documentation - all in one place.
+            {t('auth.heroSubtitle')}
           </p>
         </div>
       </div>
@@ -89,13 +91,13 @@ export default function LoginPage() {
 
           <Card className="border-slate-700 bg-slate-800">
             <CardHeader>
-              <CardTitle className="heading text-xl text-white">Sign in</CardTitle>
-              <CardDescription className="text-slate-400">Enter your credentials to access your account</CardDescription>
+              <CardTitle className="heading text-xl text-white">{t('auth.signIn')}</CardTitle>
+              <CardDescription className="text-slate-400">{t('auth.enterCredentials')}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-200">Email</Label>
+                  <Label htmlFor="email" className="text-slate-200">{t('auth.email')}</Label>
                   <Input
                     id="email"
                     data-testid="login-email-input"
@@ -109,12 +111,12 @@ export default function LoginPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-200">Password</Label>
+                  <Label htmlFor="password" className="text-slate-200">{t('auth.password')}</Label>
                   <Input
                     id="password"
                     data-testid="login-password-input"
                     type="password"
-                    placeholder="Enter your password"
+                    placeholder={t('auth.password')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -131,23 +133,23 @@ export default function LoginPage() {
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
+                      {t('auth.signingIn')}
                     </>
                   ) : (
-                    'Sign in'
+                    t('auth.signIn')
                   )}
                 </Button>
               </form>
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-slate-400">
-                  Don't have an account?{' '}
+                  {t('auth.noAccount')}{' '}
                   <Link 
                     to="/register" 
                     data-testid="register-link"
                     className="text-orange-500 hover:text-orange-600 font-medium"
                   >
-                    Create organization
+                    {t('auth.signUp')}
                   </Link>
                 </p>
               </div>

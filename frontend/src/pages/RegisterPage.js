@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 
 export default function RegisterPage() {
   const { register } = useAuth();
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -85,10 +87,10 @@ export default function RegisterPage() {
           </div>
           
           <h2 className="heading text-4xl font-bold text-white mb-4">
-            Built for Nordic businesses
+            {t('auth.builtFor')}
           </h2>
           <p className="text-slate-300 text-lg max-w-md">
-            Complete business management tailored for construction, field services, and SMBs.
+            {t('auth.builtForSubtitle')}
           </p>
         </div>
       </div>
@@ -109,13 +111,13 @@ export default function RegisterPage() {
 
           <Card className="border-slate-700 bg-slate-800">
             <CardHeader>
-              <CardTitle className="heading text-xl text-white">Create your organization</CardTitle>
-              <CardDescription className="text-slate-400">Set up your business management account</CardDescription>
+              <CardTitle className="heading text-xl text-white">{t('auth.signUp')}</CardTitle>
+              <CardDescription className="text-slate-400">{t('auth.enterCredentials')}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="groupName" className="text-slate-200">Organization Name</Label>
+                  <Label htmlFor="groupName" className="text-slate-200">{t('auth.organizationName')}</Label>
                   <Input
                     id="groupName"
                     name="groupName"
@@ -130,7 +132,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-200">Your Name</Label>
+                  <Label htmlFor="name" className="text-slate-200">{t('auth.yourName')}</Label>
                   <Input
                     id="name"
                     name="name"
@@ -145,7 +147,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-200">Email</Label>
+                  <Label htmlFor="email" className="text-slate-200">{t('auth.email')}</Label>
                   <Input
                     id="email"
                     name="email"
@@ -160,13 +162,13 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-200">Password</Label>
+                  <Label htmlFor="password" className="text-slate-200">{t('auth.password')}</Label>
                   <Input
                     id="password"
                     name="password"
                     data-testid="register-password-input"
                     type="password"
-                    placeholder="At least 8 characters"
+                    placeholder={t('auth.password')}
                     value={formData.password}
                     onChange={handleChange}
                     required
@@ -175,13 +177,13 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-slate-200">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword" className="text-slate-200">{t('auth.confirmPassword')}</Label>
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
                     data-testid="register-confirm-password-input"
                     type="password"
-                    placeholder="Confirm your password"
+                    placeholder={t('auth.confirmPassword')}
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     required
@@ -198,23 +200,23 @@ export default function RegisterPage() {
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating organization...
+                      {t('auth.creatingOrg')}
                     </>
                   ) : (
-                    'Create organization'
+                    t('auth.signUp')
                   )}
                 </Button>
               </form>
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-slate-400">
-                  Already have an account?{' '}
+                  {t('auth.haveAccount')}{' '}
                   <Link 
                     to="/login" 
                     data-testid="login-link"
                     className="text-orange-500 hover:text-orange-600 font-medium"
                   >
-                    Sign in
+                    {t('auth.signIn')}
                   </Link>
                 </p>
               </div>
