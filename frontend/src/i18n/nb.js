@@ -42,6 +42,7 @@ export const nb = {
     payroll: "Lønn",
     expenses: "Utgifter",
     projects: "Prosjekter",
+    workLog: "Arbeidslogg",
     checklists: "Sjekklister",
     hseDocuments: "HMS-dokumenter",
     settings: "Innstillinger",
