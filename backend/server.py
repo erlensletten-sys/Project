@@ -652,7 +652,7 @@ async def list_employees(request: Request, status: Optional[str] = None):
     
     return employees
 
-@api_router.post("/employees", response_model=EmployeeResponse)
+@api_router.post("/employees", response_model=EmployeeResponse, status_code=201)
 async def create_employee(request: Request, employee: EmployeeCreate):
     """Create a new employee"""
     user = await require_auth(request)
@@ -710,7 +710,7 @@ async def list_expenses(request: Request, status: Optional[str] = None, category
     
     return expenses
 
-@api_router.post("/expenses", response_model=ExpenseResponse)
+@api_router.post("/expenses", response_model=ExpenseResponse, status_code=201)
 async def create_expense(request: Request, expense: ExpenseCreate):
     """Create a new expense"""
     user = await require_auth(request)
@@ -775,7 +775,7 @@ async def list_projects(request: Request, status: Optional[str] = None):
     
     return projects
 
-@api_router.post("/projects", response_model=ProjectResponse)
+@api_router.post("/projects", response_model=ProjectResponse, status_code=201)
 async def create_project(request: Request, project: ProjectCreate):
     """Create a new project"""
     user = await require_auth(request)
@@ -897,7 +897,7 @@ async def list_checklists(request: Request, status: Optional[str] = None, catego
     
     return checklists
 
-@api_router.post("/checklists", response_model=ChecklistResponse)
+@api_router.post("/checklists", response_model=ChecklistResponse, status_code=201)
 async def create_checklist(request: Request, checklist: ChecklistCreate):
     """Create a new checklist"""
     user = await require_auth(request)
@@ -977,7 +977,7 @@ async def list_hse_documents(request: Request, document_type: Optional[str] = No
     
     return documents
 
-@api_router.post("/hse-documents", response_model=HSEDocumentResponse)
+@api_router.post("/hse-documents", response_model=HSEDocumentResponse, status_code=201)
 async def create_hse_document(request: Request, document: HSEDocumentCreate):
     """Create a new HSE document"""
     user = await require_auth(request)
