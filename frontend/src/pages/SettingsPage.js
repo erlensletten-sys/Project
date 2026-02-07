@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -20,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Building2, Users, UserPlus, Loader2, Copy, Check, Mail, Globe, CheckCircle, XCircle } from 'lucide-react';
+import { Building2, Users, UserPlus, Loader2, Copy, Check, Mail, Globe, CheckCircle, XCircle, Save, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -44,6 +45,17 @@ export default function SettingsPage() {
   // Email settings
   const [emailConfig, setEmailConfig] = useState(null);
   const [loadingEmail, setLoadingEmail] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailForm, setEmailForm] = useState({
+    smtp_host: '',
+    smtp_port: 587,
+    smtp_user: '',
+    smtp_password: '',
+    smtp_use_tls: true,
+    sender_email: '',
+    sender_name: 'NordicForge'
+  });
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
 
@@ -82,11 +94,54 @@ export default function SettingsPage() {
       if (response.ok) {
         const data = await response.json();
         setEmailConfig(data);
+        // Pre-fill the form with existing values (except password)
+        setEmailForm({
+          smtp_host: data.smtp_host || '',
+          smtp_port: data.smtp_port || 587,
+          smtp_user: '', // Clear user display mask
+          smtp_password: '',
+          smtp_use_tls: data.smtp_use_tls !== false,
+          sender_email: data.sender_email || '',
+          sender_name: data.sender_name || 'NordicForge'
+        });
       }
     } catch (error) {
       console.error('Failed to load email config:', error);
     } finally {
       setLoadingEmail(false);
+    }
+  };
+
+  const handleSaveEmailSettings = async () => {
+    if (!emailForm.smtp_host || !emailForm.smtp_user || !emailForm.sender_email) {
+      toast.error(t('settings.fillAllFields'));
+      return;
+    }
+
+    setSavingEmail(true);
+    try {
+      const response = await fetch(`${API_URL}/api/settings/email`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(emailForm)
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast.success(data.message || t('settings.emailSaved'));
+        setEditingEmail(false);
+        loadEmailConfig();
+      } else {
+        toast.error(data.detail || 'Failed to save email settings');
+      }
+    } catch (error) {
+      toast.error('Failed to save email settings');
+    } finally {
+      setSavingEmail(false);
     }
   };
 
@@ -166,7 +221,7 @@ export default function SettingsPage() {
         <p className="text-slate-400 mt-1">{t('settings.subtitle')}</p>
       </div>
 
-      {/* Language Selection */}
+      {/* Language */}
       <Card className="card">
         <CardHeader>
           <CardTitle className="heading text-lg flex items-center gap-2">
@@ -213,7 +268,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <Label className="text-slate-500">{t('settings.members')}</Label>
-              <p className="font-medium text-lg">{group?.member_count} {t('nav.settings').toLowerCase()}</p>
+              <p className="font-medium text-lg">{group?.member_count} {t('settings.members').toLowerCase()}</p>
             </div>
           </div>
         </CardContent>
@@ -223,11 +278,25 @@ export default function SettingsPage() {
       {isAdmin && (
         <Card className="card">
           <CardHeader>
-            <CardTitle className="heading text-lg flex items-center gap-2">
-              <Mail size={20} />
-              {t('settings.emailSettings')}
-            </CardTitle>
-            <CardDescription className="text-slate-400">{t('settings.emailSubtitle')}</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="heading text-lg flex items-center gap-2">
+                  <Mail size={20} />
+                  {t('settings.emailSettings')}
+                </CardTitle>
+                <CardDescription className="text-slate-400">{t('settings.emailSubtitle')}</CardDescription>
+              </div>
+              {!editingEmail && (
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingEmail(true)}
+                  className="border-slate-600"
+                >
+                  <Edit size={16} className="mr-2" />
+                  {t('settings.configure')}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {loadingEmail ? (
@@ -235,7 +304,101 @@ export default function SettingsPage() {
                 <Loader2 className="h-4 w-4 animate-spin" />
                 {t('common.loading')}
               </div>
+            ) : editingEmail ? (
+              // Editable Form
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="smtp-host">{t('settings.smtpHost')} *</Label>
+                    <Input
+                      id="smtp-host"
+                      value={emailForm.smtp_host}
+                      onChange={(e) => setEmailForm({...emailForm, smtp_host: e.target.value})}
+                      placeholder="smtp.yourdomain.com"
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smtp-port">{t('settings.smtpPort')}</Label>
+                    <Input
+                      id="smtp-port"
+                      type="number"
+                      value={emailForm.smtp_port}
+                      onChange={(e) => setEmailForm({...emailForm, smtp_port: parseInt(e.target.value) || 587})}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smtp-user">{t('settings.smtpUser')} *</Label>
+                    <Input
+                      id="smtp-user"
+                      value={emailForm.smtp_user}
+                      onChange={(e) => setEmailForm({...emailForm, smtp_user: e.target.value})}
+                      placeholder="your-email@yourdomain.com"
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smtp-password">{t('settings.smtpPassword')}</Label>
+                    <Input
+                      id="smtp-password"
+                      type="password"
+                      value={emailForm.smtp_password}
+                      onChange={(e) => setEmailForm({...emailForm, smtp_password: e.target.value})}
+                      placeholder={emailConfig?.configured ? t('settings.leaveBlank') : ''}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sender-email">{t('settings.senderEmail')} *</Label>
+                    <Input
+                      id="sender-email"
+                      type="email"
+                      value={emailForm.sender_email}
+                      onChange={(e) => setEmailForm({...emailForm, sender_email: e.target.value})}
+                      placeholder="noreply@yourdomain.com"
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sender-name">{t('settings.senderName')}</Label>
+                    <Input
+                      id="sender-name"
+                      value={emailForm.sender_name}
+                      onChange={(e) => setEmailForm({...emailForm, sender_name: e.target.value})}
+                      placeholder="NordicForge"
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="smtp-tls"
+                    checked={emailForm.smtp_use_tls}
+                    onCheckedChange={(checked) => setEmailForm({...emailForm, smtp_use_tls: checked})}
+                  />
+                  <Label htmlFor="smtp-tls">{t('settings.useTLS')}</Label>
+                </div>
+                <div className="flex gap-2 pt-4 border-t border-slate-700">
+                  <Button
+                    onClick={handleSaveEmailSettings}
+                    disabled={savingEmail}
+                    className="bg-orange-500 hover:bg-orange-600"
+                  >
+                    {savingEmail ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+                    {t('common.save')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditingEmail(false)}
+                    className="border-slate-600"
+                  >
+                    {t('common.cancel')}
+                  </Button>
+                </div>
+              </div>
             ) : emailConfig ? (
+              // Read-only Display
               <>
                 <div className="flex items-center gap-2 mb-4">
                   {emailConfig.configured ? (
@@ -291,22 +454,6 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 )}
-
-                {!emailConfig.configured && (
-                  <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                    <p className="text-sm text-amber-400">
-                      To configure SMTP, set these environment variables in backend/.env:
-                    </p>
-                    <pre className="mt-2 text-xs font-mono text-slate-400 bg-slate-800 p-2 rounded">
-{`SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=your-email@example.com
-SMTP_PASSWORD=your-password
-SENDER_EMAIL=noreply@yourdomain.com
-SENDER_NAME=NordicForge`}
-                    </pre>
-                  </div>
-                )}
               </>
             ) : null}
           </CardContent>
@@ -334,34 +481,24 @@ SENDER_NAME=NordicForge`}
                 </DialogTrigger>
                 <DialogContent className="max-w-md bg-slate-900 border-slate-700">
                   <DialogHeader>
-                    <DialogTitle className="heading">{t('settings.inviteTitle')}</DialogTitle>
+                    <DialogTitle className="heading">{t('settings.inviteUser')}</DialogTitle>
                   </DialogHeader>
-                  
                   {tempPassword ? (
                     <div className="space-y-4">
-                      <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-                        <p className="text-sm text-green-400 mb-2">
-                          {t('settings.userInvited')}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <code className="flex-1 p-2 bg-slate-800 rounded border border-slate-700 font-mono text-sm">
+                      <p className="text-slate-400">{t('settings.userCreated')}</p>
+                      <div className="p-4 bg-slate-800 rounded-lg">
+                        <Label className="text-sm text-slate-500">{t('settings.tempPassword')}</Label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <code className="flex-1 p-2 bg-slate-900 rounded font-mono text-sm">
                             {tempPassword}
                           </code>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={copyPassword}
-                          >
-                            {copied ? <Check size={16} /> : <Copy size={16} />}
+                          <Button variant="ghost" size="sm" onClick={copyPassword}>
+                            {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
                           </Button>
                         </div>
-                        <p className="text-xs text-green-400/70 mt-2">
-                          {t('settings.changePassword')}
-                        </p>
                       </div>
-                      <Button onClick={closeDialog} className="w-full">
-                        {t('settings.done')}
+                      <Button onClick={closeDialog} className="w-full bg-orange-500 hover:bg-orange-600">
+                        {t('common.close')}
                       </Button>
                     </div>
                   ) : (
@@ -373,7 +510,7 @@ SENDER_NAME=NordicForge`}
                           data-testid="invite-name-input"
                           value={newMember.name}
                           onChange={(e) => setNewMember({...newMember, name: e.target.value})}
-                          placeholder="Full name"
+                          placeholder={t('common.name')}
                           required
                           className="bg-slate-800 border-slate-700"
                         />
@@ -386,7 +523,7 @@ SENDER_NAME=NordicForge`}
                           type="email"
                           value={newMember.email}
                           onChange={(e) => setNewMember({...newMember, email: e.target.value})}
-                          placeholder="user@company.com"
+                          placeholder="name@company.com"
                           required
                           className="bg-slate-800 border-slate-700"
                         />
@@ -401,8 +538,8 @@ SENDER_NAME=NordicForge`}
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="member">{t('settings.member')}</SelectItem>
-                            <SelectItem value="admin">{t('settings.admin')}</SelectItem>
+                            <SelectItem value="member">{t('settings.roleMember')}</SelectItem>
+                            <SelectItem value="admin">{t('settings.roleAdmin')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -412,7 +549,7 @@ SENDER_NAME=NordicForge`}
                         </Button>
                         <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={inviting}>
                           {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                          {t('settings.inviteUser')}
+                          {t('settings.sendInvite')}
                         </Button>
                       </div>
                     </form>
@@ -423,14 +560,14 @@ SENDER_NAME=NordicForge`}
           </div>
         </CardHeader>
         <CardContent>
-          <div className="divide-y divide-slate-700">
+          <div className="space-y-3">
             {members.map((member) => (
               <div 
                 key={member.user_id} 
-                className="py-4 flex items-center justify-between"
+                className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg"
                 data-testid={`member-${member.user_id}`}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-white font-medium">
                     {member.name?.charAt(0).toUpperCase()}
                   </div>
@@ -439,41 +576,11 @@ SENDER_NAME=NordicForge`}
                     <p className="text-sm text-slate-500">{member.email}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className={`status-badge ${member.role === 'owner' ? 'paid' : member.role === 'admin' ? 'sent' : 'draft'}`}>
-                    {member.role === 'owner' ? t('settings.owner') : 
-                     member.role === 'admin' ? t('settings.admin') : t('settings.member')}
-                  </span>
-                  {member.user_id === user?.user_id && (
-                    <span className="text-xs text-slate-400">{t('settings.you')}</span>
-                  )}
-                </div>
+                <span className={`status-badge ${member.role === 'owner' ? 'paid' : member.role === 'admin' ? 'sent' : 'draft'}`}>
+                  {member.role}
+                </span>
               </div>
             ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Account Info */}
-      <Card className="card">
-        <CardHeader>
-          <CardTitle className="heading text-lg">{t('settings.yourAccount')}</CardTitle>
-          <CardDescription className="text-slate-400">{t('settings.accountDetails')}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-slate-500">{t('common.name')}</Label>
-              <p className="font-medium">{user?.name}</p>
-            </div>
-            <div>
-              <Label className="text-slate-500">{t('common.email')}</Label>
-              <p className="font-medium">{user?.email}</p>
-            </div>
-            <div>
-              <Label className="text-slate-500">{t('settings.role')}</Label>
-              <p className="font-medium capitalize">{user?.role}</p>
-            </div>
           </div>
         </CardContent>
       </Card>
