@@ -11,6 +11,7 @@ class NordicForgeAPITester:
         self.tests_passed = 0
         self.tests_failed = 0
         self.failed_tests = []
+        self.session = requests.Session()  # Maintain session across all requests
         self.user_token = None
         self.user_id = None
         self.group_id = None
