@@ -14,7 +14,8 @@ import {
   LogOut,
   Menu,
   X,
-  Building2
+  Building2,
+  HardHat
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -30,6 +31,7 @@ export default function Layout({ children }) {
     { path: '/payroll', label: t('nav.payroll'), icon: Users },
     { path: '/expenses', label: t('nav.expenses'), icon: Receipt },
     { path: '/projects', label: t('nav.projects'), icon: FolderKanban },
+    { path: '/work-log', label: t('nav.workLog'), icon: HardHat },
     { path: '/checklists', label: t('nav.checklists'), icon: ClipboardCheck },
     { path: '/hse', label: t('nav.hseDocuments'), icon: ShieldCheck },
     { path: '/settings', label: t('nav.settings'), icon: Settings },
