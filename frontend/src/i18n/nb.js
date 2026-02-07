@@ -336,6 +336,10 @@ export const nb = {
     defaultHourlyRate: "Standard timesats",
     hourlyRateHint: "Denne satsen brukes for timearbeid i arbeidsloggen",
     hourlyRateSaved: "Timesats lagret",
+    senderNameSaved: "Avsendernavn lagret",
+    groupSenderName: "Din organisasjons avsendernavn",
+    groupSenderNameHint: "Dette navnet vil vises som 'Fra'-navnet når din organisasjon sender e-poster",
+    globalSmtpNote: "SMTP-innstillinger deles på tvers av alle organisasjoner. Kun avsendernavnet kan tilpasses per organisasjon.",
   },
 
   // Work Log (Akkord)
