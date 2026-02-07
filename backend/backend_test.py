@@ -327,7 +327,7 @@ class NordicForgeAPITester:
             "Create Expense",
             "POST",
             "expenses",
-            200,
+            201,
             data=expense_data
         )
         
