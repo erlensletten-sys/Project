@@ -5,6 +5,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Variables for accent colors (set by ThemeContext) */
+:root {
+    --accent-50: #f0fdf4;
+    --accent-100: #dcfce7;
+    --accent-200: #bbf7d0;
+    --accent-300: #86efac;
+    --accent-400: #4ade80;
+    --accent-500: #22c55e;
+    --accent-600: #16a34a;
+    --accent-700: #15803d;
+}
+
 body {
     margin: 0;
     font-family: 'Fira Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
@@ -19,33 +31,57 @@ code {
         source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
+/* ==================== DARK MODE (Default) ==================== */
 @layer base {
-    :root {
-        --background: 220 30% 6%;
+    :root.dark, :root {
+        --background: 222 47% 5%;
         --foreground: 210 40% 98%;
-        --card: 220 25% 10%;
+        --card: 222 47% 8%;
         --card-foreground: 210 40% 98%;
-        --popover: 220 25% 10%;
+        --popover: 222 47% 8%;
         --popover-foreground: 210 40% 98%;
-        --primary: 16 100% 50%;
+        --primary: 142 76% 36%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 217.2 32.6% 17.5%;
+        --secondary: 222 47% 14%;
         --secondary-foreground: 210 40% 98%;
-        --muted: 217.2 32.6% 17.5%;
-        --muted-foreground: 215 20.2% 65.1%;
-        --accent: 16 100% 50%;
+        --muted: 222 47% 14%;
+        --muted-foreground: 215 20% 55%;
+        --accent: 142 76% 36%;
         --accent-foreground: 0 0% 100%;
         --destructive: 0 62.8% 50%;
         --destructive-foreground: 210 40% 98%;
-        --border: 217.2 32.6% 17.5%;
-        --input: 217.2 32.6% 17.5%;
-        --ring: 16 100% 50%;
+        --border: 222 47% 14%;
+        --input: 222 47% 14%;
+        --ring: 142 76% 36%;
         --chart-1: 220 70% 50%;
         --chart-2: 160 60% 45%;
         --chart-3: 30 80% 55%;
         --chart-4: 280 65% 60%;
         --chart-5: 340 75% 55%;
         --radius: 0.5rem;
+    }
+    
+    /* ==================== LIGHT MODE ==================== */
+    :root.light {
+        --background: 0 0% 100%;
+        --foreground: 222 47% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+        --primary: 142 76% 36%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 220 14% 96%;
+        --secondary-foreground: 222 47% 11%;
+        --muted: 220 14% 96%;
+        --muted-foreground: 220 9% 46%;
+        --accent: 142 76% 36%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 220 13% 91%;
+        --input: 220 13% 91%;
+        --ring: 142 76% 36%;
     }
 }
 
@@ -75,54 +111,392 @@ code {
         column-gap: inherit;
         row-gap: inherit;
         gap: inherit;
-        border-left-width: inherit;
-        border-right-width: inherit;
-        border-top-width: inherit;
-        border-bottom-width: inherit;
-        border-left-style: inherit;
-        border-right-style: inherit;
-        border-top-style: inherit;
-        border-bottom-style: inherit;
-        border-left-color: inherit;
-        border-right-color: inherit;
-        border-top-color: inherit;
-        border-bottom-color: inherit;
     }
 }
 
-/* Dark theme component overrides */
-.dark .bg-white,
-.bg-white {
-    background-color: hsl(220, 25%, 10%) !important;
+/* ==================== DARK MODE OVERRIDES ==================== */
+.dark {
+    background-color: hsl(222, 47%, 5%);
+    color: hsl(210, 40%, 98%);
 }
 
-.dark .bg-slate-50,
-.bg-slate-50 {
-    background-color: hsl(220, 25%, 12%) !important;
+.dark .bg-white {
+    background-color: hsl(222, 47%, 8%) !important;
 }
 
-.dark .border-slate-200,
-.border-slate-200 {
-    border-color: hsl(217.2, 32.6%, 17.5%) !important;
+.dark .bg-slate-50 {
+    background-color: hsl(222, 47%, 10%) !important;
 }
 
-.dark .text-slate-900,
-.text-slate-900 {
+.dark .border-slate-200 {
+    border-color: hsl(222, 47%, 14%) !important;
+}
+
+.dark .text-slate-900 {
     color: hsl(210, 40%, 98%) !important;
 }
 
-.dark .text-slate-700,
-.text-slate-700 {
-    color: hsl(215, 20.2%, 75%) !important;
+.dark .text-slate-700 {
+    color: hsl(215, 20%, 75%) !important;
 }
 
-.dark .text-slate-500,
-.text-slate-500 {
-    color: hsl(215, 20.2%, 60%) !important;
+.dark .text-slate-500 {
+    color: hsl(215, 20%, 55%) !important;
 }
 
-/* Fix for auth pages */
-.dark .bg-slate-900\/70,
-.bg-slate-900\/70 {
-    background-color: rgba(10, 15, 26, 0.85) !important;
+/* ==================== LIGHT MODE OVERRIDES ==================== */
+.light {
+    background-color: hsl(220, 14%, 96%);
+    color: hsl(222, 47%, 11%);
+}
+
+.light .bg-slate-900 {
+    background-color: hsl(0, 0%, 100%) !important;
+}
+
+.light .bg-slate-800 {
+    background-color: hsl(220, 14%, 96%) !important;
+}
+
+.light .bg-slate-800\/50 {
+    background-color: hsl(220, 14%, 94%) !important;
+}
+
+.light .border-slate-700 {
+    border-color: hsl(220, 13%, 85%) !important;
+}
+
+.light .border-slate-600 {
+    border-color: hsl(220, 13%, 80%) !important;
+}
+
+.light .text-white {
+    color: hsl(222, 47%, 11%) !important;
+}
+
+.light .text-slate-400 {
+    color: hsl(220, 9%, 46%) !important;
+}
+
+.light .text-slate-300 {
+    color: hsl(220, 9%, 40%) !important;
+}
+
+/* ==================== ACCENT COLOR CLASSES ==================== */
+/* Primary Button */
+.btn-accent {
+    background-color: var(--accent-500) !important;
+}
+.btn-accent:hover {
+    background-color: var(--accent-600) !important;
+}
+
+/* Accent text */
+.text-accent {
+    color: var(--accent-500) !important;
+}
+.text-accent-light {
+    color: var(--accent-400) !important;
+}
+
+/* Accent backgrounds */
+.bg-accent {
+    background-color: var(--accent-500) !important;
+}
+.bg-accent-light {
+    background-color: var(--accent-100) !important;
+}
+.bg-accent\/10 {
+    background-color: color-mix(in srgb, var(--accent-500) 10%, transparent) !important;
+}
+.bg-accent\/20 {
+    background-color: color-mix(in srgb, var(--accent-500) 20%, transparent) !important;
+}
+
+/* Accent borders */
+.border-accent {
+    border-color: var(--accent-500) !important;
+}
+.border-accent\/30 {
+    border-color: color-mix(in srgb, var(--accent-500) 30%, transparent) !important;
+}
+.border-accent\/50 {
+    border-color: color-mix(in srgb, var(--accent-500) 50%, transparent) !important;
+}
+
+/* Replace orange with accent */
+.bg-orange-500 {
+    background-color: var(--accent-500) !important;
+}
+.bg-orange-600, .hover\:bg-orange-600:hover {
+    background-color: var(--accent-600) !important;
+}
+.bg-orange-100 {
+    background-color: var(--accent-100) !important;
+}
+.bg-orange-500\/10 {
+    background-color: color-mix(in srgb, var(--accent-500) 10%, transparent) !important;
+}
+.bg-orange-500\/20 {
+    background-color: color-mix(in srgb, var(--accent-500) 20%, transparent) !important;
+}
+
+.text-orange-500 {
+    color: var(--accent-500) !important;
+}
+.text-orange-400 {
+    color: var(--accent-400) !important;
+}
+.text-orange-600, .hover\:text-orange-600:hover {
+    color: var(--accent-600) !important;
+}
+.hover\:text-orange-300:hover {
+    color: var(--accent-300) !important;
+}
+
+.border-orange-200 {
+    border-color: var(--accent-200) !important;
+}
+.border-orange-500 {
+    border-color: var(--accent-500) !important;
+}
+.border-orange-500\/30 {
+    border-color: color-mix(in srgb, var(--accent-500) 30%, transparent) !important;
+}
+.border-orange-500\/50 {
+    border-color: color-mix(in srgb, var(--accent-500) 50%, transparent) !important;
+}
+
+.hover\:border-orange-200:hover {
+    border-color: var(--accent-200) !important;
+}
+.hover\:border-orange-500\/50:hover {
+    border-color: color-mix(in srgb, var(--accent-500) 50%, transparent) !important;
+}
+
+/* Ring colors */
+.ring-orange-500 {
+    --tw-ring-color: var(--accent-500) !important;
+}
+.focus\:ring-orange-500:focus {
+    --tw-ring-color: var(--accent-500) !important;
+}
+
+/* ==================== CUSTOM COMPONENT STYLES ==================== */
+.heading {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Status badges */
+.status-badge {
+    @apply px-2.5 py-1 rounded-full text-xs font-medium;
+}
+
+.status-badge.draft {
+    @apply bg-slate-500/20 text-slate-300;
+}
+
+.light .status-badge.draft {
+    @apply bg-slate-200 text-slate-600;
+}
+
+.status-badge.sent {
+    background-color: color-mix(in srgb, #3b82f6 20%, transparent);
+    color: #60a5fa;
+}
+
+.light .status-badge.sent {
+    background-color: #dbeafe;
+    color: #2563eb;
+}
+
+.status-badge.paid {
+    background-color: color-mix(in srgb, var(--accent-500) 20%, transparent);
+    color: var(--accent-400);
+}
+
+.light .status-badge.paid {
+    background-color: var(--accent-100);
+    color: var(--accent-700);
+}
+
+.status-badge.overdue {
+    @apply bg-red-500/20 text-red-400;
+}
+
+.light .status-badge.overdue {
+    @apply bg-red-100 text-red-600;
+}
+
+.status-badge.pending {
+    background-color: color-mix(in srgb, #eab308 20%, transparent);
+    color: #facc15;
+}
+
+.light .status-badge.pending {
+    background-color: #fef9c3;
+    color: #a16207;
+}
+
+.status-badge.approved {
+    background-color: color-mix(in srgb, var(--accent-500) 20%, transparent);
+    color: var(--accent-400);
+}
+
+.light .status-badge.approved {
+    background-color: var(--accent-100);
+    color: var(--accent-700);
+}
+
+.status-badge.rejected {
+    @apply bg-red-500/20 text-red-400;
+}
+
+.light .status-badge.rejected {
+    @apply bg-red-100 text-red-600;
+}
+
+.status-badge.active {
+    background-color: color-mix(in srgb, var(--accent-500) 20%, transparent);
+    color: var(--accent-400);
+}
+
+.light .status-badge.active {
+    background-color: var(--accent-100);
+    color: var(--accent-700);
+}
+
+.status-badge.inactive {
+    @apply bg-slate-500/20 text-slate-400;
+}
+
+.light .status-badge.inactive {
+    @apply bg-slate-200 text-slate-600;
+}
+
+.status-badge.planning {
+    @apply bg-purple-500/20 text-purple-400;
+}
+
+.light .status-badge.planning {
+    @apply bg-purple-100 text-purple-700;
+}
+
+.status-badge.completed {
+    background-color: color-mix(in srgb, var(--accent-500) 20%, transparent);
+    color: var(--accent-400);
+}
+
+.light .status-badge.completed {
+    background-color: var(--accent-100);
+    color: var(--accent-700);
+}
+
+.status-badge.on-hold {
+    background-color: color-mix(in srgb, #eab308 20%, transparent);
+    color: #facc15;
+}
+
+.light .status-badge.on-hold {
+    background-color: #fef9c3;
+    color: #a16207;
+}
+
+.status-badge.processed {
+    @apply bg-blue-500/20 text-blue-400;
+}
+
+.light .status-badge.processed {
+    @apply bg-blue-100 text-blue-700;
+}
+
+/* Cards */
+.card {
+    @apply bg-card border border-border rounded-xl;
+}
+
+.light .card {
+    @apply bg-white border-slate-200 shadow-sm;
+}
+
+/* Stat cards */
+.stat-card {
+    @apply p-5 flex flex-col;
+}
+
+.stat-label {
+    @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
+}
+
+.stat-value {
+    @apply text-2xl font-bold mt-2;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Data tables */
+.data-table {
+    @apply w-full;
+}
+
+.data-table th {
+    @apply px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground border-b border-border;
+}
+
+.data-table td {
+    @apply px-4 py-3 border-b border-border;
+}
+
+.data-table tbody tr:hover {
+    @apply bg-muted/50;
+}
+
+/* Empty state */
+.empty-state {
+    @apply flex flex-col items-center justify-center text-center text-muted-foreground;
+}
+
+/* Bento grid */
+.bento-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4;
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Sidebar light mode */
+.light .sidebar-dark {
+    @apply bg-white border-r border-slate-200;
+}
+
+.light .sidebar-dark .text-white {
+    @apply text-slate-900;
+}
+
+.light .sidebar-dark .text-slate-400 {
+    @apply text-slate-500;
+}
+
+/* Input fields light mode */
+.light input[type="text"],
+.light input[type="email"],
+.light input[type="password"],
+.light input[type="number"],
+.light input[type="date"],
+.light textarea,
+.light select {
+    @apply bg-white border-slate-300 text-slate-900;
+}
+
+.light input[type="text"]::placeholder,
+.light input[type="email"]::placeholder,
+.light input[type="password"]::placeholder,
+.light textarea::placeholder {
+    @apply text-slate-400;
 }
