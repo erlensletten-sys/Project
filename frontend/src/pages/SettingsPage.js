@@ -159,11 +159,41 @@ export default function SettingsPage() {
           sender_email: data.sender_email || '',
           sender_name: data.sender_name || 'ProjectDash'
         });
+        // Set group sender name
+        setGroupSenderName(data.sender_name || '');
       }
     } catch (error) {
       console.error('Failed to load email config:', error);
     } finally {
       setLoadingEmail(false);
+    }
+  };
+
+  const handleSaveGroupSenderName = async () => {
+    if (!groupSenderName.trim()) {
+      toast.error(t('settings.fillAllFields'));
+      return;
+    }
+
+    setSavingSenderName(true);
+    try {
+      const response = await fetch(`${API_URL}/api/settings/email/sender-name`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sender_name: groupSenderName })
+      });
+      
+      if (response.ok) {
+        toast.success(t('settings.senderNameSaved'));
+        loadEmailConfig();
+      } else {
+        toast.error('Failed to save sender name');
+      }
+    } catch (error) {
+      toast.error('Failed to save sender name');
+    } finally {
+      setSavingSenderName(false);
     }
   };
 
