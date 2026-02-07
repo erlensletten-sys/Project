@@ -300,7 +300,7 @@ class NordicForgeAPITester:
             "Create Employee",
             "POST",
             "employees",
-            200,
+            201,
             data=employee_data
         )
         
