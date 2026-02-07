@@ -282,15 +282,27 @@ class EmailSettingsUpdate(BaseModel):
     sender_email: str
     sender_name: str = "ProjectDash"
 
-# Work Log Models (Akkord/Piece-rate Payment)
+# Group Settings Model (for hourly rates)
+class GroupSettingsUpdate(BaseModel):
+    hourly_rate: float = Field(ge=0, description="Default hourly rate for the organization")
+
+# Work Log Models (Akkord/Piece-rate Payment + Hourly)
+class WorkerHours(BaseModel):
+    user_id: str
+    hours: float = Field(ge=0)
+
 class WorkLogCreate(BaseModel):
     project_id: str
     date: datetime
     description: Optional[str] = None
-    area: float = Field(ge=0, description="Area in square meters")
-    base_operation: str  # avtrekk, skuring, glatting
-    addons: List[str] = []  # sikatop_x1, sikatop_x2, tykkelse_30_40, tykkelse_40_50, ashford, plastikk
-    hours_worked: float = Field(ge=0)
+    work_type: str = "akkord"  # "akkord" or "hourly"
+    # Akkord fields
+    area: Optional[float] = Field(default=0, ge=0, description="Area in square meters")
+    base_operation: Optional[str] = None  # avtrekk, skuring, glatting
+    addons: List[str] = []  # sikatop_x1, sikatop_x2, etc.
+    # Common fields
+    total_hours: float = Field(ge=0, description="Total hours for the job")
+    workers: List[WorkerHours] = []  # List of workers and their individual hours
 
 class WorkLogResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -298,16 +310,19 @@ class WorkLogResponse(BaseModel):
     group_id: str
     project_id: str
     project_name: Optional[str] = None
-    user_id: str
+    user_id: str  # Creator
     user_name: Optional[str] = None
     date: datetime
     description: Optional[str] = None
+    work_type: str
     area: float
-    base_operation: str
+    base_operation: Optional[str]
     addons: List[str]
-    hours_worked: float
-    rate_per_sqm: float  # Calculated price per m²
-    total_payment: float  # area × rate_per_sqm
+    total_hours: float
+    workers: List[dict]  # Workers with their hours and calculated payment
+    rate_per_sqm: float  # For akkord
+    hourly_rate: float  # For hourly work
+    total_payment: float
     created_at: datetime
 
 # Akkord pricing constants
