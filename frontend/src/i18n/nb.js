@@ -331,6 +331,11 @@ export const nb = {
     sendInvite: "Send invitasjon",
     roleMember: "Medlem",
     roleAdmin: "Administrator",
+    workLogSettings: "Arbeidslogg-innstillinger",
+    workLogSettingsSubtitle: "Konfigurer standardsatser for timearbeid",
+    defaultHourlyRate: "Standard timesats",
+    hourlyRateHint: "Denne satsen brukes for timearbeid i arbeidsloggen",
+    hourlyRateSaved: "Timesats lagret",
   },
 
   // Work Log (Akkord)
