@@ -434,12 +434,12 @@ export default function WorkLogPage() {
           </TabsList>
 
           {/* Project Filter */}
-          <Select value={selectedProject} onValueChange={setSelectedProject}>
+          <Select value={selectedProject || "all"} onValueChange={(v) => setSelectedProject(v === "all" ? "" : v)}>
             <SelectTrigger data-testid="filter-project" className="w-[200px] bg-slate-800 border-slate-700">
               <SelectValue placeholder={t('workLog.allProjects')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">{t('workLog.allProjects')}</SelectItem>
+              <SelectItem value="all">{t('workLog.allProjects')}</SelectItem>
               {projects.map(proj => (
                 <SelectItem key={proj.project_id} value={proj.project_id}>
                   {proj.name}
