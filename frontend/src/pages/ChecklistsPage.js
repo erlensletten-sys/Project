@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/i18n';
 import { 
   getFormTemplates, 
   createFormTemplate, 
@@ -46,20 +47,26 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const FIELD_TYPES = [
-  { value: 'text', label: 'Short Text' },
-  { value: 'textarea', label: 'Long Text' },
-  { value: 'number', label: 'Number' },
-  { value: 'checkbox', label: 'Checkbox' },
-  { value: 'select', label: 'Dropdown' },
-  { value: 'date', label: 'Date' },
-];
-
-const CATEGORIES = ['general', 'safety', 'quality', 'inspection'];
-
 export default function ChecklistsPage() {
   const { user } = useAuth();
+  const { t, language } = useLanguage();
   const isAdmin = user?.role === 'admin' || user?.role === 'owner';
+  
+  const FIELD_TYPES = [
+    { value: 'text', label: t('forms.shortText') },
+    { value: 'textarea', label: t('forms.longText') },
+    { value: 'number', label: t('forms.number') },
+    { value: 'checkbox', label: t('forms.checkbox') },
+    { value: 'select', label: t('forms.dropdown') },
+    { value: 'date', label: t('forms.dateField') },
+  ];
+
+  const CATEGORIES = [
+    { value: 'general', label: t('forms.general') },
+    { value: 'safety', label: t('forms.safety') },
+    { value: 'quality', label: t('forms.quality') },
+    { value: 'inspection', label: t('forms.inspection') }
+  ];
   
   const [activeTab, setActiveTab] = useState(isAdmin ? 'templates' : 'submissions');
   const [forms, setForms] = useState([]);
@@ -226,6 +233,11 @@ export default function ChecklistsPage() {
     s.project_name?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const getCategoryLabel = (cat) => {
+    const found = CATEGORIES.find(c => c.value === cat);
+    return found ? found.label : cat;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -239,9 +251,9 @@ export default function ChecklistsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="heading text-3xl font-bold">Forms & Checklists</h1>
+          <h1 className="heading text-3xl font-bold">{t('forms.title')}</h1>
           <p className="text-slate-400 mt-1">
-            {isAdmin ? 'Create form templates and view submissions' : 'Fill out forms and view your submissions'}
+            {isAdmin ? t('forms.subtitle') : t('forms.subtitleUser')}
           </p>
         </div>
       </div>
@@ -252,16 +264,16 @@ export default function ChecklistsPage() {
           {isAdmin && (
             <TabsTrigger value="templates" data-testid="tab-templates" className="data-[state=active]:bg-orange-500">
               <ClipboardList size={16} className="mr-2" />
-              Form Templates
+              {t('forms.formTemplates')}
             </TabsTrigger>
           )}
           <TabsTrigger value="submissions" data-testid="tab-submissions" className="data-[state=active]:bg-orange-500">
             <FileText size={16} className="mr-2" />
-            Submissions
+            {t('forms.submissions')}
           </TabsTrigger>
           <TabsTrigger value="fill" data-testid="tab-fill" className="data-[state=active]:bg-orange-500">
             <Send size={16} className="mr-2" />
-            Fill Form
+            {t('forms.fillForm')}
           </TabsTrigger>
         </TabsList>
 
@@ -273,7 +285,7 @@ export default function ChecklistsPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <Input
                   data-testid="search-forms"
-                  placeholder="Search forms..."
+                  placeholder={t('common.search') + '...'}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 bg-slate-800 border-slate-700"
@@ -283,29 +295,29 @@ export default function ChecklistsPage() {
                 <DialogTrigger asChild>
                   <Button data-testid="create-form-btn" className="bg-orange-500 hover:bg-orange-600">
                     <Plus size={16} className="mr-2" />
-                    Create Form
+                    {t('forms.createForm')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl bg-slate-900 border-slate-700 max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle className="heading">Create Form Template</DialogTitle>
+                    <DialogTitle className="heading">{t('forms.createForm')}</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleCreateForm} className="space-y-6">
                     {/* Form Info */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Form Title *</Label>
+                        <Label>{t('forms.formTitle')} *</Label>
                         <Input
                           data-testid="form-title-input"
                           value={newForm.title}
                           onChange={(e) => setNewForm({...newForm, title: e.target.value})}
-                          placeholder="e.g. Daily Safety Inspection"
+                          placeholder={t('forms.formTitle')}
                           required
                           className="bg-slate-800 border-slate-700"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Category</Label>
+                        <Label>{t('forms.category')}</Label>
                         <Select
                           value={newForm.category}
                           onValueChange={(value) => setNewForm({...newForm, category: value})}
@@ -315,7 +327,7 @@ export default function ChecklistsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {CATEGORIES.map(cat => (
-                              <SelectItem key={cat} value={cat} className="capitalize">{cat}</SelectItem>
+                              <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -323,12 +335,12 @@ export default function ChecklistsPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label>Description</Label>
+                      <Label>{t('common.description')}</Label>
                       <Textarea
                         data-testid="form-description-input"
                         value={newForm.description}
                         onChange={(e) => setNewForm({...newForm, description: e.target.value})}
-                        placeholder="What is this form for?"
+                        placeholder={t('common.description')}
                         className="bg-slate-800 border-slate-700"
                       />
                     </div>
@@ -336,10 +348,10 @@ export default function ChecklistsPage() {
                     {/* Field Builder */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <Label className="text-lg">Form Fields</Label>
+                        <Label className="text-lg">{t('forms.fields')}</Label>
                         <Button type="button" variant="outline" size="sm" onClick={addField}>
                           <Plus size={14} className="mr-1" />
-                          Add Field
+                          {t('forms.addField')}
                         </Button>
                       </div>
                       
@@ -351,7 +363,7 @@ export default function ChecklistsPage() {
                           >
                             <div className="flex items-center gap-2">
                               <GripVertical size={16} className="text-slate-500" />
-                              <span className="text-sm text-slate-400">Field {index + 1}</span>
+                              <span className="text-sm text-slate-400">{t('forms.fields')} {index + 1}</span>
                               <div className="flex-1" />
                               <Button
                                 type="button"
@@ -367,7 +379,7 @@ export default function ChecklistsPage() {
                             
                             <div className="grid grid-cols-3 gap-3">
                               <div className="space-y-1">
-                                <Label className="text-xs">Field Type</Label>
+                                <Label className="text-xs">{t('forms.fieldType')}</Label>
                                 <Select
                                   value={field.field_type}
                                   onValueChange={(value) => updateField(index, 'field_type', value)}
@@ -384,11 +396,11 @@ export default function ChecklistsPage() {
                               </div>
                               
                               <div className="col-span-2 space-y-1">
-                                <Label className="text-xs">Label *</Label>
+                                <Label className="text-xs">{t('forms.fieldLabel')} *</Label>
                                 <Input
                                   value={field.label}
                                   onChange={(e) => updateField(index, 'label', e.target.value)}
-                                  placeholder="Field label"
+                                  placeholder={t('forms.fieldLabel')}
                                   className="bg-slate-700 border-slate-600 h-9"
                                 />
                               </div>
@@ -400,13 +412,13 @@ export default function ChecklistsPage() {
                                   checked={field.required}
                                   onCheckedChange={(checked) => updateField(index, 'required', checked)}
                                 />
-                                <span className="text-sm">Required</span>
+                                <span className="text-sm">{t('common.required')}</span>
                               </label>
                               
                               {field.field_type === 'select' && (
                                 <div className="flex-1">
                                   <Input
-                                    placeholder="Options (comma-separated)"
+                                    placeholder={t('forms.options')}
                                     value={field.options?.join(', ') || ''}
                                     onChange={(e) => updateField(index, 'options', e.target.value.split(',').map(o => o.trim()).filter(Boolean))}
                                     className="bg-slate-700 border-slate-600 h-8 text-sm"
@@ -421,11 +433,11 @@ export default function ChecklistsPage() {
 
                     <div className="flex justify-end gap-2 pt-4 border-t border-slate-700">
                       <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                        Cancel
+                        {t('common.cancel')}
                       </Button>
                       <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={creating}>
                         {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                        Create Form
+                        {t('forms.createForm')}
                       </Button>
                     </div>
                   </form>
@@ -439,8 +451,8 @@ export default function ChecklistsPage() {
                 <CardContent>
                   <div className="empty-state py-16">
                     <ClipboardList size={48} className="text-slate-600" strokeWidth={1} />
-                    <h3 className="font-medium mt-4">No form templates yet</h3>
-                    <p className="text-sm mt-1 text-slate-500">Create your first form template to get started</p>
+                    <h3 className="font-medium mt-4">{t('forms.noForms')}</h3>
+                    <p className="text-sm mt-1 text-slate-500">{t('forms.createFirst')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -452,7 +464,7 @@ export default function ChecklistsPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <CardTitle className="heading text-base">{form.title}</CardTitle>
-                          <p className="text-xs text-slate-500 capitalize mt-1">{form.category}</p>
+                          <p className="text-xs text-slate-500 capitalize mt-1">{getCategoryLabel(form.category)}</p>
                         </div>
                         <Button
                           variant="ghost"
@@ -469,8 +481,8 @@ export default function ChecklistsPage() {
                         <p className="text-sm text-slate-400 mb-4 line-clamp-2">{form.description}</p>
                       )}
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-500">{form.fields?.length || 0} fields</span>
-                        <span className="text-slate-500">{form.submission_count || 0} submissions</span>
+                        <span className="text-slate-500">{form.fields?.length || 0} {t('forms.fields').toLowerCase()}</span>
+                        <span className="text-slate-500">{form.submission_count || 0} {t('forms.submissions').toLowerCase()}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -486,7 +498,7 @@ export default function ChecklistsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input
               data-testid="search-submissions"
-              placeholder="Search submissions..."
+              placeholder={t('common.search') + '...'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 bg-slate-800 border-slate-700"
@@ -498,8 +510,8 @@ export default function ChecklistsPage() {
               <CardContent>
                 <div className="empty-state py-16">
                   <FileText size={48} className="text-slate-600" strokeWidth={1} />
-                  <h3 className="font-medium mt-4">No submissions yet</h3>
-                  <p className="text-sm mt-1 text-slate-500">Fill out a form to see submissions here</p>
+                  <h3 className="font-medium mt-4">{t('forms.noSubmissions')}</h3>
+                  <p className="text-sm mt-1 text-slate-500">{t('forms.fillFirst')}</p>
                 </div>
               </CardContent>
             </Card>
@@ -509,11 +521,11 @@ export default function ChecklistsPage() {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Form</th>
-                      <th>Project</th>
-                      <th>Submitted By</th>
-                      <th>Date</th>
-                      <th>Actions</th>
+                      <th>{t('forms.formTitle')}</th>
+                      <th>{t('nav.projects')}</th>
+                      <th>{t('forms.submittedBy')}</th>
+                      <th>{t('common.date')}</th>
+                      <th>{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -532,7 +544,7 @@ export default function ChecklistsPage() {
                         </td>
                         <td className="text-slate-400">{sub.submitted_by_name}</td>
                         <td className="text-slate-400">
-                          {new Date(sub.created_at).toLocaleDateString('nb-NO')}
+                          {new Date(sub.created_at).toLocaleDateString(language === 'nb' ? 'nb-NO' : 'en-GB')}
                         </td>
                         <td>
                           <Button
@@ -543,7 +555,7 @@ export default function ChecklistsPage() {
                             data-testid={`download-pdf-${sub.submission_id}`}
                           >
                             <Download size={16} className="mr-1" />
-                            PDF
+                            {t('forms.downloadPdf')}
                           </Button>
                         </td>
                       </tr>
@@ -562,9 +574,9 @@ export default function ChecklistsPage() {
               <CardContent>
                 <div className="empty-state py-16">
                   <ClipboardList size={48} className="text-slate-600" strokeWidth={1} />
-                  <h3 className="font-medium mt-4">No forms available</h3>
+                  <h3 className="font-medium mt-4">{t('forms.noFormsAvailable')}</h3>
                   <p className="text-sm mt-1 text-slate-500">
-                    {isAdmin ? 'Create a form template first' : 'No forms have been created yet'}
+                    {isAdmin ? t('forms.createFirst') : t('forms.noFormsCreated')}
                   </p>
                 </div>
               </CardContent>
@@ -582,11 +594,11 @@ export default function ChecklistsPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="heading font-semibold">{form.title}</h3>
-                        <p className="text-xs text-slate-500 capitalize mt-1">{form.category}</p>
+                        <p className="text-xs text-slate-500 capitalize mt-1">{getCategoryLabel(form.category)}</p>
                         {form.description && (
                           <p className="text-sm text-slate-400 mt-2 line-clamp-2">{form.description}</p>
                         )}
-                        <p className="text-sm text-slate-500 mt-3">{form.fields?.length || 0} fields</p>
+                        <p className="text-sm text-slate-500 mt-3">{form.fields?.length || 0} {t('forms.fields').toLowerCase()}</p>
                       </div>
                       <ChevronRight className="text-orange-400" size={20} />
                     </div>
@@ -612,16 +624,16 @@ export default function ChecklistsPage() {
 
               {/* Project Selection */}
               <div className="space-y-2">
-                <Label>Link to Project (Optional)</Label>
+                <Label>{t('forms.linkToProject')}</Label>
                 <Select
                   value={selectedProjectId}
                   onValueChange={setSelectedProjectId}
                 >
                   <SelectTrigger data-testid="select-project" className="bg-slate-800 border-slate-700">
-                    <SelectValue placeholder="Select a project" />
+                    <SelectValue placeholder={t('forms.selectProject')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No project</SelectItem>
+                    <SelectItem value="">{t('forms.noProject')}</SelectItem>
                     {projects.map(proj => (
                       <SelectItem key={proj.project_id} value={proj.project_id}>
                         {proj.name}
@@ -682,7 +694,7 @@ export default function ChecklistsPage() {
                         checked={formResponses[field.field_id] || false}
                         onCheckedChange={(checked) => handleResponseChange(field.field_id, checked)}
                       />
-                      <span className="text-sm text-slate-400">Yes</span>
+                      <span className="text-sm text-slate-400">{t('common.yes')}</span>
                     </label>
                   )}
                   
@@ -692,7 +704,7 @@ export default function ChecklistsPage() {
                       onValueChange={(value) => handleResponseChange(field.field_id, value)}
                     >
                       <SelectTrigger data-testid={`field-${field.field_id}`} className="bg-slate-800 border-slate-700">
-                        <SelectValue placeholder="Select an option" />
+                        <SelectValue placeholder={t('common.filter')} />
                       </SelectTrigger>
                       <SelectContent>
                         {field.options?.map((opt, i) => (
@@ -717,11 +729,11 @@ export default function ChecklistsPage() {
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-700">
                 <Button type="button" variant="outline" onClick={() => setFillDialogOpen(false)}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={filling}>
                   {filling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Submit Form
+                  {t('common.submit')}
                 </Button>
               </div>
             </form>
