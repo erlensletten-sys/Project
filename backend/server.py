@@ -2057,6 +2057,52 @@ async def send_invoice(request: Request, invoice_id: str, send_request: SendInvo
     
     return {"ok": True, "message": f"Invoice queued for delivery to {recipient_email}"}
 
+# ============== Email Settings Endpoints ==============
+
+@api_router.get("/settings/email")
+async def get_email_settings(request: Request):
+    """Get email configuration status (admin only)"""
+    user = await require_admin(request)
+    
+    config = get_email_config()
+    
+    return {
+        "configured": is_email_configured(),
+        "smtp_host": config["smtp_host"],
+        "smtp_port": config["smtp_port"],
+        "smtp_user": config["smtp_user"][:3] + "***" if config["smtp_user"] else "",
+        "smtp_use_tls": config["smtp_use_tls"],
+        "sender_email": config["sender_email"],
+        "sender_name": config["sender_name"]
+    }
+
+@api_router.post("/settings/email/test")
+async def test_email_settings(request: Request, test_email: str):
+    """Send a test email to verify SMTP configuration"""
+    user = await require_admin(request)
+    
+    if not is_email_configured():
+        raise HTTPException(status_code=400, detail="SMTP is not configured. Please set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and SENDER_EMAIL in environment variables.")
+    
+    html_content = """
+    <html>
+    <body style="font-family: Arial, sans-serif; padding: 20px;">
+        <h1 style="color: #FF4500;">NordicForge Email Test</h1>
+        <p>This is a test email to verify your SMTP configuration is working correctly.</p>
+        <p>If you received this email, your email settings are configured properly!</p>
+        <hr>
+        <p style="color: #666; font-size: 0.9em;">Sent from NordicForge Business Management Platform</p>
+    </body>
+    </html>
+    """
+    
+    success = await send_email_smtp(test_email, "NordicForge - Email Configuration Test", html_content)
+    
+    if success:
+        return {"ok": True, "message": f"Test email sent successfully to {test_email}"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send test email. Please check your SMTP configuration and server logs.")
+
 # ============== Health Check ==============
 
 @api_router.get("/health")
