@@ -233,6 +233,38 @@ class InviteUserRequest(BaseModel):
     name: str
     role: str = "member"  # member, admin
 
+# Payroll Run Models
+class PayrollRunCreate(BaseModel):
+    month: int = Field(ge=1, le=12)
+    year: int = Field(ge=2020, le=2100)
+    notes: Optional[str] = None
+
+class PayrollRunResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    run_id: str
+    group_id: str
+    month: int
+    year: int
+    employees: List[dict]
+    total_amount: float
+    status: str  # draft, processed, paid
+    notes: Optional[str] = None
+    created_by: str
+    created_at: datetime
+    processed_at: Optional[datetime] = None
+
+# File Upload Models
+class FileUploadResponse(BaseModel):
+    file_id: str
+    file_url: str
+    filename: str
+    content_type: str
+    size: int
+
+# Email Models
+class SendInvoiceRequest(BaseModel):
+    recipient_email: Optional[EmailStr] = None  # If not provided, uses customer_email
+
 # ============== Helper Functions ==============
 
 def generate_slug():
