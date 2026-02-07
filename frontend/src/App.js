@@ -19,6 +19,7 @@ import ProjectDetailPage from "@/pages/ProjectDetailPage";
 import ChecklistsPage from "@/pages/ChecklistsPage";
 import HSEPage from "@/pages/HSEPage";
 import SettingsPage from "@/pages/SettingsPage";
+import WorkLogPage from "@/pages/WorkLogPage";
 
 // Layout
 import Layout from "@/components/Layout";
