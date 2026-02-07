@@ -492,6 +492,20 @@ async def require_admin(request: Request) -> dict:
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
+async def require_hr_or_admin(request: Request) -> dict:
+    """Require HR or admin role"""
+    user = await require_auth(request)
+    if user["role"] not in ["hr", "admin", "owner"]:
+        raise HTTPException(status_code=403, detail="HR or admin access required")
+    return user
+
+def has_permission(user_role: str, permission: str) -> bool:
+    """Check if a role has a specific permission"""
+    if user_role == "owner":
+        return True
+    permissions = ROLE_PERMISSIONS.get(user_role, [])
+    return permission in permissions or "*" in permissions
+
 # ============== File Upload Helpers ==============
 
 UPLOAD_DIR = Path("/app/uploads")
