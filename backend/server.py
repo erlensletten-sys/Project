@@ -350,6 +350,163 @@ async def require_admin(request: Request) -> dict:
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
+# ============== File Upload Helpers ==============
+
+UPLOAD_DIR = Path("/app/uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+ALLOWED_EXTENSIONS = {'.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx', '.xls', '.xlsx'}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+async def save_upload_file(file: UploadFile, group_id: str) -> dict:
+    """Save uploaded file and return file info"""
+    # Validate file extension
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"File type {file_ext} not allowed")
+    
+    # Read file content
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+    
+    # Generate unique filename
+    file_id = f"file_{uuid.uuid4().hex[:12]}"
+    safe_filename = f"{file_id}{file_ext}"
+    
+    # Create group upload directory
+    group_dir = UPLOAD_DIR / group_id
+    group_dir.mkdir(exist_ok=True)
+    
+    # Save file
+    file_path = group_dir / safe_filename
+    async with aiofiles.open(file_path, 'wb') as f:
+        await f.write(content)
+    
+    # Store file record in database
+    file_doc = {
+        "file_id": file_id,
+        "group_id": group_id,
+        "filename": file.filename,
+        "safe_filename": safe_filename,
+        "content_type": file.content_type or "application/octet-stream",
+        "size": len(content),
+        "created_at": datetime.now(timezone.utc)
+    }
+    await db.files.insert_one(file_doc)
+    
+    # Return file URL (relative to API)
+    file_url = f"/api/files/{group_id}/{safe_filename}"
+    
+    return {
+        "file_id": file_id,
+        "file_url": file_url,
+        "filename": file.filename,
+        "content_type": file_doc["content_type"],
+        "size": len(content)
+    }
+
+# ============== Email Helpers ==============
+
+async def send_invoice_email(invoice: dict, recipient_email: str, group_name: str):
+    """Send invoice email via SendGrid"""
+    if not SENDGRID_AVAILABLE:
+        logger.warning("SendGrid not available, skipping email")
+        return False
+    
+    api_key = os.environ.get('SENDGRID_API_KEY')
+    sender_email = os.environ.get('SENDER_EMAIL', 'noreply@nordicforge.no')
+    
+    if not api_key:
+        logger.warning("SENDGRID_API_KEY not configured, skipping email")
+        return False
+    
+    # Build HTML email content
+    items_html = ""
+    for item in invoice.get("items", []):
+        items_html += f"""
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">{item['description']}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">{item['quantity']}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">{item['unit_price']:,.2f} kr</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">{item['total']:,.2f} kr</td>
+        </tr>
+        """
+    
+    due_date = invoice.get('due_date')
+    if isinstance(due_date, datetime):
+        due_date_str = due_date.strftime('%d.%m.%Y')
+    elif isinstance(due_date, str):
+        due_date_str = due_date[:10]
+    else:
+        due_date_str = 'N/A'
+    
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #0F172A; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0;">Invoice from {group_name}</h1>
+        </div>
+        
+        <div style="padding: 20px;">
+            <p>Dear {invoice.get('customer_name', 'Customer')},</p>
+            <p>Please find your invoice details below:</p>
+            
+            <div style="background-color: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 8px;">
+                <p style="margin: 5px 0;"><strong>Invoice Number:</strong> {invoice.get('invoice_number')}</p>
+                <p style="margin: 5px 0;"><strong>Due Date:</strong> {due_date_str}</p>
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <thead>
+                    <tr style="background-color: #f8f9fa;">
+                        <th style="padding: 10px; text-align: left;">Description</th>
+                        <th style="padding: 10px; text-align: center;">Qty</th>
+                        <th style="padding: 10px; text-align: right;">Price</th>
+                        <th style="padding: 10px; text-align: right;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {items_html}
+                </tbody>
+            </table>
+            
+            <div style="text-align: right; margin-top: 20px;">
+                <p style="margin: 5px 0;">Subtotal: <strong>{invoice.get('subtotal', 0):,.2f} kr</strong></p>
+                <p style="margin: 5px 0;">VAT: <strong>{invoice.get('vat_total', 0):,.2f} kr</strong></p>
+                <p style="margin: 5px 0; font-size: 1.2em; color: #FF4500;">
+                    Total: <strong>{invoice.get('total', 0):,.2f} kr</strong>
+                </p>
+            </div>
+            
+            {f'<p style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border-radius: 8px;"><strong>Notes:</strong> {invoice.get("notes")}</p>' if invoice.get("notes") else ''}
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+            
+            <p style="color: #666; font-size: 0.9em;">
+                Thank you for your business!<br>
+                {group_name}
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    message = Mail(
+        from_email=sender_email,
+        to_emails=recipient_email,
+        subject=f"Invoice {invoice.get('invoice_number')} from {group_name}",
+        html_content=html_content
+    )
+    
+    try:
+        sg = SendGridAPIClient(api_key)
+        response = sg.send(message)
+        return response.status_code == 202
+    except Exception as e:
+        logger.error(f"Failed to send email: {e}")
+        return False
+
 # ============== Auth Endpoints ==============
 
 @api_router.post("/auth/register")
