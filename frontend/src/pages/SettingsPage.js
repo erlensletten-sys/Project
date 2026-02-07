@@ -77,6 +77,14 @@ export default function SettingsPage() {
   // Hourly rate settings
   const [hourlyRate, setHourlyRate] = useState(0);
   const [savingRate, setSavingRate] = useState(false);
+  
+  // User management
+  const [editingUser, setEditingUser] = useState(null);
+  const [updatingRole, setUpdatingRole] = useState(false);
+  const [showInactiveUsers, setShowInactiveUsers] = useState(false);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [newUserData, setNewUserData] = useState({ name: '', email: '', password: '', role: 'employee' });
 
   const isAdmin = user?.role === 'admin' || user?.role === 'owner';
 
