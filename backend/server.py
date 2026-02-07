@@ -2167,7 +2167,7 @@ async def test_email_settings(request: Request, test_email: str):
     </html>
     """
     
-    success = await send_email_smtp(test_email, "NordicForge - Email Configuration Test", html_content)
+    success = await send_email_smtp(test_email, "NordicForge - Email Configuration Test", html_content, group_id=user["group_id"])
     
     if success:
         return {"ok": True, "message": f"Test email sent successfully to {test_email}"}
