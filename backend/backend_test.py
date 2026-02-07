@@ -18,7 +18,7 @@ class NordicForgeAPITester:
         self.test_user_email = f"test_{uuid.uuid4().hex[:8]}@example.com"
         self.test_password = "TestPass123!"
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, headers=None, use_cookies=True):
+    def run_test(self, name, method, endpoint, expected_status, data=None, headers=None, use_session=True):
         """Run a single API test"""
         url = f"{self.base_url}/{endpoint}" if endpoint else self.base_url
         if headers is None:
@@ -29,7 +29,8 @@ class NordicForgeAPITester:
         print(f"   URL: {url}")
         
         try:
-            session = requests.Session() if use_cookies else requests
+            # Use persistent session for cookie management
+            session = self.session if use_session else requests
             
             if method == 'GET':
                 response = session.get(url, headers=headers, timeout=10)
