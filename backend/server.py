@@ -2096,25 +2096,58 @@ async def get_email_settings(request: Request):
     """Get email configuration status (admin only)"""
     user = await require_admin(request)
     
-    config = get_email_config()
+    # Check database first, then environment
+    config = await get_effective_email_config(user["group_id"])
+    configured = await is_email_configured_for_group(user["group_id"])
     
     return {
-        "configured": is_email_configured(),
-        "smtp_host": config["smtp_host"],
-        "smtp_port": config["smtp_port"],
-        "smtp_user": config["smtp_user"][:3] + "***" if config["smtp_user"] else "",
-        "smtp_use_tls": config["smtp_use_tls"],
-        "sender_email": config["sender_email"],
-        "sender_name": config["sender_name"]
+        "configured": configured,
+        "smtp_host": config.get("smtp_host", ""),
+        "smtp_port": config.get("smtp_port", 587),
+        "smtp_user": config.get("smtp_user", "")[:3] + "***" if config.get("smtp_user") else "",
+        "smtp_use_tls": config.get("smtp_use_tls", True),
+        "sender_email": config.get("sender_email", ""),
+        "sender_name": config.get("sender_name", "NordicForge")
     }
+
+@api_router.put("/settings/email")
+async def update_email_settings(request: Request, settings: EmailSettingsUpdate):
+    """Update email configuration for the organization (admin only)"""
+    user = await require_admin(request)
+    
+    # Build update document
+    update_data = {
+        "group_id": user["group_id"],
+        "smtp_host": settings.smtp_host,
+        "smtp_port": settings.smtp_port,
+        "smtp_user": settings.smtp_user,
+        "smtp_use_tls": settings.smtp_use_tls,
+        "sender_email": settings.sender_email,
+        "sender_name": settings.sender_name,
+        "updated_at": datetime.now(timezone.utc)
+    }
+    
+    # Only update password if provided
+    if settings.smtp_password:
+        update_data["smtp_password"] = settings.smtp_password
+    
+    # Upsert the config
+    await db.email_configs.update_one(
+        {"group_id": user["group_id"]},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    return {"ok": True, "message": "Email settings saved successfully"}
 
 @api_router.post("/settings/email/test")
 async def test_email_settings(request: Request, test_email: str):
     """Send a test email to verify SMTP configuration"""
     user = await require_admin(request)
     
-    if not is_email_configured():
-        raise HTTPException(status_code=400, detail="SMTP is not configured. Please set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and SENDER_EMAIL in environment variables.")
+    configured = await is_email_configured_for_group(user["group_id"])
+    if not configured:
+        raise HTTPException(status_code=400, detail="SMTP is not configured. Please configure SMTP settings first.")
     
     html_content = """
     <html>
