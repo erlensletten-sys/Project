@@ -87,6 +87,36 @@ export const createChecklist = (data) =>
 export const toggleChecklistItem = (checklistId, itemIndex) =>
   fetchAPI(`/api/checklists/${checklistId}/items/${itemIndex}`, { method: 'PATCH' });
 
+// Form Builder
+export const getFormTemplates = (category) =>
+  fetchAPI(`/api/forms${category ? `?category=${category}` : ''}`);
+
+export const getFormTemplate = (id) => fetchAPI(`/api/forms/${id}`);
+
+export const createFormTemplate = (data) =>
+  fetchAPI('/api/forms', { method: 'POST', body: JSON.stringify(data) });
+
+export const deleteFormTemplate = (id) =>
+  fetchAPI(`/api/forms/${id}`, { method: 'DELETE' });
+
+export const getFormSubmissions = (formId, projectId) => {
+  const params = new URLSearchParams();
+  if (projectId) params.append('project_id', projectId);
+  const query = params.toString();
+  return fetchAPI(`/api/forms/${formId}/submissions${query ? `?${query}` : ''}`);
+};
+
+export const createFormSubmission = (formId, data) =>
+  fetchAPI(`/api/forms/${formId}/submissions`, { method: 'POST', body: JSON.stringify(data) });
+
+export const getSubmission = (id) => fetchAPI(`/api/submissions/${id}`);
+
+export const getAllSubmissions = (projectId) =>
+  fetchAPI(`/api/submissions${projectId ? `?project_id=${projectId}` : ''}`);
+
+export const getSubmissionPdfUrl = (submissionId) =>
+  `${API_URL}/api/submissions/${submissionId}/pdf`;
+
 // HSE Documents
 export const getHSEDocuments = (documentType) =>
   fetchAPI(`/api/hse-documents${documentType ? `?document_type=${documentType}` : ''}`);
