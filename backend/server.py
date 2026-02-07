@@ -457,20 +457,66 @@ async def save_upload_file(file: UploadFile, group_id: str) -> dict:
 
 # ============== Email Helpers ==============
 
-async def send_invoice_email(invoice: dict, recipient_email: str, group_name: str):
-    """Send invoice email via SendGrid"""
-    if not SENDGRID_AVAILABLE:
-        logger.warning("SendGrid not available, skipping email")
+def get_email_config():
+    """Get email configuration from environment"""
+    return {
+        "smtp_host": os.environ.get('SMTP_HOST', ''),
+        "smtp_port": int(os.environ.get('SMTP_PORT', 587)),
+        "smtp_user": os.environ.get('SMTP_USER', ''),
+        "smtp_password": os.environ.get('SMTP_PASSWORD', ''),
+        "smtp_use_tls": os.environ.get('SMTP_USE_TLS', 'true').lower() == 'true',
+        "sender_email": os.environ.get('SENDER_EMAIL', ''),
+        "sender_name": os.environ.get('SENDER_NAME', 'NordicForge')
+    }
+
+def is_email_configured():
+    """Check if email is properly configured"""
+    config = get_email_config()
+    return bool(config["smtp_host"] and config["smtp_user"] and config["sender_email"])
+
+async def send_email_smtp(to_email: str, subject: str, html_content: str, text_content: str = None):
+    """Send email via SMTP"""
+    config = get_email_config()
+    
+    if not is_email_configured():
+        logger.warning("SMTP not configured, skipping email")
         return False
     
-    api_key = os.environ.get('SENDGRID_API_KEY')
-    sender_email = os.environ.get('SENDER_EMAIL', 'noreply@nordicforge.no')
-    
-    if not api_key:
-        logger.warning("SENDGRID_API_KEY not configured, skipping email")
+    try:
+        # Create message
+        message = MIMEMultipart("alternative")
+        message["Subject"] = subject
+        message["From"] = f"{config['sender_name']} <{config['sender_email']}>"
+        message["To"] = to_email
+        
+        # Add plain text version if provided
+        if text_content:
+            part1 = MIMEText(text_content, "plain")
+            message.attach(part1)
+        
+        # Add HTML version
+        part2 = MIMEText(html_content, "html")
+        message.attach(part2)
+        
+        # Send via SMTP
+        await aiosmtplib.send(
+            message,
+            hostname=config["smtp_host"],
+            port=config["smtp_port"],
+            username=config["smtp_user"],
+            password=config["smtp_password"],
+            start_tls=config["smtp_use_tls"]
+        )
+        
+        logger.info(f"Email sent successfully to {to_email}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send email via SMTP: {e}")
         return False
-    
-    # Build HTML email content
+
+def build_invoice_email_html(invoice: dict, group_name: str) -> str:
+    """Build HTML content for invoice email"""
     items_html = ""
     for item in invoice.get("items", []):
         items_html += f"""
@@ -540,21 +586,41 @@ async def send_invoice_email(invoice: dict, recipient_email: str, group_name: st
     </body>
     </html>
     """
+    return html_content
+
+async def send_invoice_email(invoice: dict, recipient_email: str, group_name: str):
+    """Send invoice email via configured method (SMTP or SendGrid)"""
     
-    message = Mail(
-        from_email=sender_email,
-        to_emails=recipient_email,
-        subject=f"Invoice {invoice.get('invoice_number')} from {group_name}",
-        html_content=html_content
-    )
+    # Build email content
+    html_content = build_invoice_email_html(invoice, group_name)
+    subject = f"Invoice {invoice.get('invoice_number')} from {group_name}"
     
-    try:
-        sg = SendGridAPIClient(api_key)
-        response = sg.send(message)
-        return response.status_code == 202
-    except Exception as e:
-        logger.error(f"Failed to send email: {e}")
-        return False
+    # Try SMTP first (preferred)
+    if is_email_configured():
+        return await send_email_smtp(recipient_email, subject, html_content)
+    
+    # Fallback to SendGrid if configured
+    if SENDGRID_AVAILABLE:
+        api_key = os.environ.get('SENDGRID_API_KEY')
+        sender_email = os.environ.get('SENDER_EMAIL', 'noreply@nordicforge.no')
+        
+        if api_key:
+            try:
+                message = Mail(
+                    from_email=sender_email,
+                    to_emails=recipient_email,
+                    subject=subject,
+                    html_content=html_content
+                )
+                sg = SendGridAPIClient(api_key)
+                response = sg.send(message)
+                return response.status_code == 202
+            except Exception as e:
+                logger.error(f"Failed to send email via SendGrid: {e}")
+                return False
+    
+    logger.warning("No email service configured (SMTP or SendGrid)")
+    return False
 
 # ============== PDF Generation Helpers ==============
 
