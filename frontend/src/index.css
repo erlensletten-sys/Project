@@ -472,15 +472,16 @@ code {
 
 /* Sidebar light mode */
 .light .sidebar-dark {
-    @apply bg-white border-r border-slate-200;
+    background-color: white !important;
+    border-right: 1px solid hsl(220, 13%, 91%) !important;
 }
 
-.light .sidebar-dark .text-white {
-    @apply text-slate-900;
+.light .sidebar-dark .sidebar-text-white {
+    color: hsl(222, 47%, 11%) !important;
 }
 
-.light .sidebar-dark .text-slate-400 {
-    @apply text-slate-500;
+.light .sidebar-dark .sidebar-text-muted {
+    color: hsl(220, 9%, 46%) !important;
 }
 
 /* Input fields light mode */
