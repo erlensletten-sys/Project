@@ -387,6 +387,47 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Work Log Settings (Admin Only) */}
+      {isAdmin && (
+        <Card className="card">
+          <CardHeader>
+            <CardTitle className="heading text-lg flex items-center gap-2">
+              <Clock size={20} />
+              {t('settings.workLogSettings')}
+            </CardTitle>
+            <CardDescription className="text-slate-400">{t('settings.workLogSettingsSubtitle')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="hourly-rate">{t('settings.defaultHourlyRate')}</Label>
+              <div className="flex gap-3 items-center">
+                <Input
+                  id="hourly-rate"
+                  data-testid="hourly-rate-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={hourlyRate}
+                  onChange={(e) => setHourlyRate(e.target.value)}
+                  placeholder="0"
+                  className="w-40 bg-slate-800 border-slate-700"
+                />
+                <span className="text-slate-400">kr/time</span>
+                <Button
+                  onClick={handleSaveHourlyRate}
+                  disabled={savingRate}
+                  className="bg-orange-500 hover:bg-orange-600"
+                >
+                  {savingRate ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+                  {t('common.save')}
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500">{t('settings.hourlyRateHint')}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Email Settings (Admin Only) */}
       {isAdmin && (
         <Card className="card">
