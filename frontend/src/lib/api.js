@@ -104,6 +104,43 @@ export const getGroupMembers = () => fetchAPI('/api/group/members');
 export const inviteUser = (data) =>
   fetchAPI('/api/group/invite', { method: 'POST', body: JSON.stringify(data) });
 
+// Payroll Runs
+export const getPayrollRuns = () => fetchAPI('/api/payroll/runs');
+
+export const getPayrollRun = (id) => fetchAPI(`/api/payroll/runs/${id}`);
+
+export const createPayrollRun = (data) =>
+  fetchAPI('/api/payroll/runs', { method: 'POST', body: JSON.stringify(data) });
+
+export const updatePayrollRunStatus = (id, status) =>
+  fetchAPI(`/api/payroll/runs/${id}/status?status=${status}`, { method: 'PATCH' });
+
+// File Upload
+export const uploadFile = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await fetch(`${API_URL}/api/upload`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+    throw new Error(error.detail || 'Upload failed');
+  }
+  
+  return response.json();
+};
+
+// Invoice Email
+export const sendInvoice = (invoiceId, recipientEmail = null) =>
+  fetchAPI(`/api/invoices/${invoiceId}/send`, {
+    method: 'POST',
+    body: JSON.stringify({ recipient_email: recipientEmail })
+  });
+
 // Utility
 export const formatCurrency = (amount, currency = 'NOK') => {
   return new Intl.NumberFormat('nb-NO', {
