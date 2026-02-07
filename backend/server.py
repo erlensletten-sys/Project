@@ -1307,6 +1307,187 @@ async def get_dashboard_stats(request: Request):
         }
     }
 
+# ============== Payroll Run Endpoints ==============
+
+@api_router.get("/payroll/runs")
+async def list_payroll_runs(request: Request):
+    """List all payroll runs for the group"""
+    user = await require_auth(request)
+    
+    runs = await db.payroll_runs.find(
+        {"group_id": user["group_id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return runs
+
+@api_router.post("/payroll/runs", status_code=201)
+async def create_payroll_run(request: Request, run: PayrollRunCreate):
+    """Create a new payroll run"""
+    user = await require_admin(request)
+    
+    # Check if run already exists for this month/year
+    existing = await db.payroll_runs.find_one({
+        "group_id": user["group_id"],
+        "month": run.month,
+        "year": run.year
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Payroll run for {run.month}/{run.year} already exists")
+    
+    # Get active employees
+    employees = await db.employees.find(
+        {"group_id": user["group_id"], "status": "active"},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    if not employees:
+        raise HTTPException(status_code=400, detail="No active employees found")
+    
+    # Create employee snapshot for this run
+    employee_snapshots = []
+    total_amount = 0
+    
+    for emp in employees:
+        snapshot = {
+            "employee_id": emp["employee_id"],
+            "name": emp["name"],
+            "position": emp["position"],
+            "department": emp.get("department"),
+            "salary": emp["salary"],
+            "deductions": 0,  # Can be extended for tax calculations
+            "net_pay": emp["salary"]
+        }
+        employee_snapshots.append(snapshot)
+        total_amount += emp["salary"]
+    
+    run_id = f"run_{uuid.uuid4().hex[:12]}"
+    run_doc = {
+        "run_id": run_id,
+        "group_id": user["group_id"],
+        "month": run.month,
+        "year": run.year,
+        "employees": employee_snapshots,
+        "total_amount": round(total_amount, 2),
+        "status": "draft",
+        "notes": run.notes,
+        "created_by": user["user_id"],
+        "created_at": datetime.now(timezone.utc)
+    }
+    
+    await db.payroll_runs.insert_one(run_doc)
+    run_doc.pop("_id", None)
+    return run_doc
+
+@api_router.get("/payroll/runs/{run_id}")
+async def get_payroll_run(request: Request, run_id: str):
+    """Get a specific payroll run"""
+    user = await require_auth(request)
+    
+    run = await db.payroll_runs.find_one(
+        {"run_id": run_id, "group_id": user["group_id"]},
+        {"_id": 0}
+    )
+    
+    if not run:
+        raise HTTPException(status_code=404, detail="Payroll run not found")
+    
+    return run
+
+@api_router.patch("/payroll/runs/{run_id}/status")
+async def update_payroll_run_status(request: Request, run_id: str, status: str):
+    """Update payroll run status (admin only)"""
+    user = await require_admin(request)
+    
+    if status not in ["draft", "processed", "paid"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    
+    update_data = {"status": status}
+    if status == "processed":
+        update_data["processed_at"] = datetime.now(timezone.utc)
+    
+    result = await db.payroll_runs.update_one(
+        {"run_id": run_id, "group_id": user["group_id"]},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Payroll run not found")
+    
+    return {"ok": True, "status": status}
+
+# ============== File Upload Endpoints ==============
+
+@api_router.post("/upload", response_model=FileUploadResponse)
+async def upload_file(request: Request, file: UploadFile = File(...)):
+    """Upload a file"""
+    user = await require_auth(request)
+    
+    result = await save_upload_file(file, user["group_id"])
+    return result
+
+@api_router.get("/files/{group_id}/{filename}")
+async def get_file(group_id: str, filename: str, request: Request):
+    """Get an uploaded file"""
+    from fastapi.responses import FileResponse
+    
+    # Security: verify user has access to this group
+    user = await get_current_user(request)
+    if not user or user["group_id"] != group_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    file_path = UPLOAD_DIR / group_id / filename
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Get content type from database
+    file_doc = await db.files.find_one({"safe_filename": filename}, {"_id": 0})
+    content_type = file_doc.get("content_type", "application/octet-stream") if file_doc else "application/octet-stream"
+    
+    return FileResponse(file_path, media_type=content_type)
+
+# ============== Invoice Email Endpoint ==============
+
+@api_router.post("/invoices/{invoice_id}/send")
+async def send_invoice(request: Request, invoice_id: str, send_request: SendInvoiceRequest, background_tasks: BackgroundTasks):
+    """Send invoice via email"""
+    user = await require_auth(request)
+    
+    # Get invoice
+    invoice = await db.invoices.find_one(
+        {"invoice_id": invoice_id, "group_id": user["group_id"]},
+        {"_id": 0}
+    )
+    
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Determine recipient email
+    recipient_email = send_request.recipient_email or invoice.get("customer_email")
+    
+    if not recipient_email:
+        raise HTTPException(status_code=400, detail="No recipient email provided")
+    
+    # Get group name
+    group_doc = await db.groups.find_one(
+        {"group_id": user["group_id"]},
+        {"_id": 0, "name": 1}
+    )
+    group_name = group_doc.get("name", "NordicForge") if group_doc else "NordicForge"
+    
+    # Queue email in background
+    background_tasks.add_task(send_invoice_email, invoice, recipient_email, group_name)
+    
+    # Update invoice status to sent
+    await db.invoices.update_one(
+        {"invoice_id": invoice_id},
+        {"$set": {"status": "sent", "sent_at": datetime.now(timezone.utc), "sent_to": recipient_email}}
+    )
+    
+    return {"ok": True, "message": f"Invoice queued for delivery to {recipient_email}"}
+
 # ============== Health Check ==============
 
 @api_router.get("/health")
