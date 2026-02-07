@@ -10,12 +10,15 @@ import uuid
 import bcrypt
 import base64
 import aiofiles
+import aiosmtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime, timezone, timedelta
 
-# SendGrid for emails
+# SendGrid for emails (optional fallback)
 try:
     from sendgrid import SendGridAPIClient
     from sendgrid.helpers.mail import Mail
