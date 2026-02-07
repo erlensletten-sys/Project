@@ -44,7 +44,25 @@ Small to medium-sized businesses in Norway and other Nordic countries.
 - Form submissions linked to projects
 - PDF export of submissions
 
-### 8. Settings & Configuration
+### 8. **Work Log (Akkord/Piece-rate Payment)** - NEW
+- Users can log their production work
+- **Base Operations** (select one):
+  - Avtrekk: 18 kr/m²
+  - Skuring: 22 kr/m²
+  - Glatting: 26 kr/m²
+- **Add-ons** (checkboxes, add on top of base):
+  - Sikatop x1: +3 kr/m²
+  - Sikatop x2: +6 kr/m²
+  - Tykkelse 30-40cm: +3 kr/m²
+  - Tykkelse 40-50cm: +5 kr/m²
+  - Ashford: +10 kr/m²
+  - Plastikk: +5 kr/m²
+- Work logged under projects
+- Auto-calculated payment: Area × Rate
+- Summary showing total area, hours, and earnings
+- Admins can view all team work logs
+
+### 9. Settings & Configuration
 - Organization management
 - Team member invitation
 - **SMTP Configuration** - Admins can configure email settings via UI
@@ -76,6 +94,7 @@ Small to medium-sized businesses in Norway and other Nordic countries.
 - `form_templates`: Form builder templates
 - `form_submissions`: Completed form entries
 - `email_configs`: SMTP configuration per group
+- `work_logs`: Akkord/piece-rate work entries
 - `files`: Uploaded file metadata
 
 ## Implemented Features (as of December 2025)
@@ -94,6 +113,7 @@ Small to medium-sized businesses in Norway and other Nordic countries.
 - [x] SMTP configuration via Settings UI
 - [x] Language selection (English/Norwegian)
 - [x] All pages translated (i18n)
+- [x] **Work Log (Akkord) for piece-rate payment**
 
 ### Backlog
 - [ ] Real-time invoice email delivery (requires SMTP credentials)
@@ -103,6 +123,7 @@ Small to medium-sized businesses in Norway and other Nordic countries.
 - [ ] Expense approval notifications
 - [ ] Dashboard analytics/charts
 - [ ] Mobile-responsive improvements
+- [ ] Work log summary per project with employee breakdown
 
 ## API Endpoints
 
@@ -116,6 +137,14 @@ Small to medium-sized businesses in Norway and other Nordic countries.
 - `GET /api/settings/email` - Get SMTP configuration status
 - `PUT /api/settings/email` - Save SMTP configuration
 - `POST /api/settings/email/test` - Send test email
+
+### Work Logs
+- `GET /api/work-logs` - Get all work logs (admin)
+- `GET /api/work-logs/my` - Get current user's work logs
+- `POST /api/work-logs` - Create work log entry
+- `DELETE /api/work-logs/{id}` - Delete work log
+- `GET /api/work-logs/summary/project/{id}` - Project work summary
+- `GET /api/akkord/pricing` - Get pricing structure
 
 ### Core Modules
 - `/api/invoices` - Invoice management
@@ -141,14 +170,22 @@ CORS_ORIGINS=*
 REACT_APP_BACKEND_URL=https://hse-invoice-hub.preview.emergentagent.com
 ```
 
-## Testing
-- Backend: pytest with async support
-- Frontend: Playwright for UI testing
-- Test coverage: Authentication, Settings, i18n, SMTP configuration
+## Akkord Pricing Structure
+| Base Operation | Price (kr/m²) |
+|----------------|---------------|
+| Avtrekk        | 18            |
+| Skuring        | 22            |
+| Glatting       | 26            |
 
-## Design Guidelines
-- Dark theme with orange accent color
-- Shadcn/UI component library
-- Inter font family
-- Consistent 8px spacing grid
-- Status badges for visual state indication
+| Add-on              | Additional Price (kr/m²) |
+|---------------------|--------------------------|
+| Sikatop x1          | +3                       |
+| Sikatop x2          | +6                       |
+| Tykkelse 30-40cm    | +3                       |
+| Tykkelse 40-50cm    | +5                       |
+| Ashford             | +10                      |
+| Plastikk            | +5                       |
+
+**Payment Calculation:**
+- Total Rate = Base Operation Price + Sum of Selected Add-ons
+- Total Payment = Area (m²) × Total Rate (kr/m²)
