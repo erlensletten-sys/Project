@@ -167,7 +167,7 @@ CORS_ORIGINS=*
 
 ### Frontend (.env)
 ```
-REACT_APP_BACKEND_URL=https://hse-invoice-hub.preview.emergentagent.com
+REACT_APP_BACKEND_URL=https://piece-rate-v2.preview.emergentagent.com
 ```
 
 ## Akkord Pricing Structure
