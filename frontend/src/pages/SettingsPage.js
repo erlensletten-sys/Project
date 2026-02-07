@@ -54,7 +54,7 @@ export default function SettingsPage() {
     smtp_password: '',
     smtp_use_tls: true,
     sender_email: '',
-    sender_name: 'NordicForge'
+    sender_name: 'ProjectDash'
   });
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
@@ -102,7 +102,7 @@ export default function SettingsPage() {
           smtp_password: '',
           smtp_use_tls: data.smtp_use_tls !== false,
           sender_email: data.sender_email || '',
-          sender_name: data.sender_name || 'NordicForge'
+          sender_name: data.sender_name || 'ProjectDash'
         });
       }
     } catch (error) {
@@ -366,7 +366,7 @@ export default function SettingsPage() {
                       id="sender-name"
                       value={emailForm.sender_name}
                       onChange={(e) => setEmailForm({...emailForm, sender_name: e.target.value})}
-                      placeholder="NordicForge"
+                      placeholder="ProjectDash"
                       className="bg-slate-800 border-slate-700"
                     />
                   </div>

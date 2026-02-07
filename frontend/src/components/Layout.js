@@ -61,7 +61,7 @@ export default function Layout({ children }) {
               <Building2 className="text-white" size={24} strokeWidth={1.5} />
             </div>
             <div>
-              <h1 className="heading text-white font-semibold text-lg">NordicForge</h1>
+              <h1 className="heading text-white font-semibold text-lg">ProjectDash</h1>
               <p className="text-slate-400 text-xs">{user?.group_name}</p>
             </div>
           </div>
