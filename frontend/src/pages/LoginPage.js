@@ -104,12 +104,12 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="h-11"
+                    className="h-11 bg-slate-700 border-slate-600"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-slate-200">Password</Label>
                   <Input
                     id="password"
                     data-testid="login-password-input"
@@ -118,7 +118,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="h-11"
+                    className="h-11 bg-slate-700 border-slate-600"
                   />
                 </div>
 
@@ -140,7 +140,7 @@ export default function LoginPage() {
               </form>
 
               <div className="mt-6 text-center">
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-400">
                   Don't have an account?{' '}
                   <Link 
                     to="/register" 
