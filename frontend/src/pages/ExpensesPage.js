@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getExpenses, createExpense, updateExpenseStatus, uploadFile, formatCurrency, formatDate } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/i18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,19 +24,9 @@ import {
 import { Plus, Receipt, Search, Loader2, Check, X, Upload, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
-const CATEGORIES = [
-  'Travel',
-  'Meals',
-  'Equipment',
-  'Software',
-  'Office Supplies',
-  'Transportation',
-  'Accommodation',
-  'Other'
-];
-
 export default function ExpensesPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const fileInputRef = useRef(null);
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +45,17 @@ export default function ExpensesPage() {
   const [selectedFile, setSelectedFile] = useState(null);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'owner';
+
+  const CATEGORIES = [
+    { value: 'travel', label: t('expenses.categories.travel') },
+    { value: 'meals', label: t('expenses.categories.meals') },
+    { value: 'equipment', label: t('expenses.categories.equipment') },
+    { value: 'software', label: t('expenses.categories.software') },
+    { value: 'officeSupplies', label: t('expenses.categories.officeSupplies') },
+    { value: 'transportation', label: t('expenses.categories.transportation') },
+    { value: 'accommodation', label: t('expenses.categories.accommodation') },
+    { value: 'other', label: t('expenses.categories.other') }
+  ];
 
   useEffect(() => {
     loadExpenses();
@@ -91,7 +93,7 @@ export default function ExpensesPage() {
       const result = await uploadFile(selectedFile);
       setNewExpense({...newExpense, receipt_url: result.file_url});
       setSelectedFile(null);
-      toast.success('Receipt uploaded');
+      toast.success(t('expenses.receiptUploaded'));
     } catch (error) {
       toast.error(error.message || 'Failed to upload receipt');
     } finally {
@@ -141,6 +143,15 @@ export default function ExpensesPage() {
     setSelectedFile(null);
   };
 
+  const getStatusLabel = (status) => {
+    const labels = {
+      pending: t('expenses.pending'),
+      approved: t('expenses.approved'),
+      rejected: t('expenses.rejected')
+    };
+    return labels[status] || status;
+  };
+
   const filteredExpenses = expenses.filter(exp =>
     exp.description.toLowerCase().includes(search.toLowerCase())
   );
@@ -158,36 +169,36 @@ export default function ExpensesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="heading text-3xl font-bold">Expenses</h1>
-          <p className="text-slate-400 mt-1">Track and manage business expenses</p>
+          <h1 className="heading text-3xl font-bold">{t('expenses.title')}</h1>
+          <p className="text-slate-400 mt-1">{t('expenses.subtitle')}</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="add-expense-btn" className="bg-orange-500 hover:bg-orange-600">
               <Plus size={16} className="mr-2" />
-              Submit Expense
+              {t('expenses.submitExpense')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md bg-slate-900 border-slate-700">
             <DialogHeader>
-              <DialogTitle className="heading">Submit New Expense</DialogTitle>
+              <DialogTitle className="heading">{t('expenses.submitExpense')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="exp-desc">Description *</Label>
+                <Label htmlFor="exp-desc">{t('common.description')} *</Label>
                 <Textarea
                   id="exp-desc"
                   data-testid="expense-description-input"
                   value={newExpense.description}
                   onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
-                  placeholder="What was this expense for?"
+                  placeholder={t('common.description')}
                   required
                   className="bg-slate-800 border-slate-700"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="exp-amount">Amount (NOK) *</Label>
+                  <Label htmlFor="exp-amount">{t('common.amount')} (NOK) *</Label>
                   <Input
                     id="exp-amount"
                     data-testid="expense-amount-input"
@@ -202,24 +213,24 @@ export default function ExpensesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Category *</Label>
+                  <Label>{t('expenses.category')} *</Label>
                   <Select
                     value={newExpense.category}
                     onValueChange={(value) => setNewExpense({...newExpense, category: value})}
                   >
                     <SelectTrigger data-testid="expense-category-select" className="bg-slate-800 border-slate-700">
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder={t('common.select')} />
                     </SelectTrigger>
                     <SelectContent>
                       {CATEGORIES.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="exp-date">Date</Label>
+                <Label htmlFor="exp-date">{t('common.date')}</Label>
                 <Input
                   id="exp-date"
                   data-testid="expense-date-input"
@@ -232,12 +243,12 @@ export default function ExpensesPage() {
               
               {/* Receipt Upload */}
               <div className="space-y-2">
-                <Label>Receipt</Label>
+                <Label>{t('expenses.receipt')}</Label>
                 <div className="space-y-2">
                   {newExpense.receipt_url ? (
                     <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                       <FileText size={16} className="text-green-400" />
-                      <span className="text-sm text-green-400 flex-1">Receipt uploaded</span>
+                      <span className="text-sm text-green-400 flex-1">{t('expenses.receiptUploaded')}</span>
                       <Button
                         type="button"
                         variant="ghost"
@@ -245,7 +256,7 @@ export default function ExpensesPage() {
                         onClick={() => setNewExpense({...newExpense, receipt_url: ''})}
                         className="text-red-400 hover:text-red-300"
                       >
-                        Remove
+                        {t('common.delete')}
                       </Button>
                     </div>
                   ) : (
@@ -264,7 +275,7 @@ export default function ExpensesPage() {
                         className="flex-1 border-slate-700 hover:bg-slate-800"
                       >
                         <Upload size={16} className="mr-2" />
-                        {selectedFile ? selectedFile.name : 'Select Receipt'}
+                        {selectedFile ? selectedFile.name : t('expenses.selectReceipt')}
                       </Button>
                       {selectedFile && (
                         <Button
@@ -273,22 +284,22 @@ export default function ExpensesPage() {
                           disabled={uploading}
                           className="bg-blue-500 hover:bg-blue-600"
                         >
-                          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
+                          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('common.upload')}
                         </Button>
                       )}
                     </div>
                   )}
-                  <p className="text-xs text-slate-500">Supported: PDF, PNG, JPG (max 10MB)</p>
+                  <p className="text-xs text-slate-500">{t('expenses.supported')}</p>
                 </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={closeDialog}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={creating}>
                   {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Submit
+                  {t('common.submit')}
                 </Button>
               </div>
             </form>
@@ -304,7 +315,7 @@ export default function ExpensesPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <Input
                 data-testid="search-expenses"
-                placeholder="Search expenses..."
+                placeholder={t('common.search') + '...'}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 bg-slate-800 border-slate-700"
@@ -312,13 +323,13 @@ export default function ExpensesPage() {
             </div>
             <Select value={filter} onValueChange={setFilter}>
               <SelectTrigger data-testid="filter-expenses" className="w-[180px] bg-slate-800 border-slate-700">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder={t('common.filter')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Expenses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="all">{t('common.all')} {t('expenses.title')}</SelectItem>
+                <SelectItem value="pending">{t('expenses.pending')}</SelectItem>
+                <SelectItem value="approved">{t('expenses.approved')}</SelectItem>
+                <SelectItem value="rejected">{t('expenses.rejected')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -331,20 +342,20 @@ export default function ExpensesPage() {
           {filteredExpenses.length === 0 ? (
             <div className="empty-state py-16">
               <Receipt size={48} className="text-slate-600" strokeWidth={1} />
-              <h3 className="font-medium mt-4">No expenses found</h3>
-              <p className="text-sm mt-1 text-slate-500">Submit your first expense to get started</p>
+              <h3 className="font-medium mt-4">{t('expenses.noExpenses')}</h3>
+              <p className="text-sm mt-1 text-slate-500">{t('expenses.submitFirst')}</p>
             </div>
           ) : (
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Description</th>
-                  <th>Category</th>
-                  <th>Date</th>
-                  <th>Receipt</th>
-                  <th>Status</th>
-                  <th className="text-right">Amount</th>
-                  {isAdmin && <th>Actions</th>}
+                  <th>{t('common.description')}</th>
+                  <th>{t('expenses.category')}</th>
+                  <th>{t('common.date')}</th>
+                  <th>{t('expenses.receipt')}</th>
+                  <th>{t('common.status')}</th>
+                  <th className="text-right">{t('common.amount')}</th>
+                  {isAdmin && <th>{t('common.actions')}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -362,14 +373,14 @@ export default function ExpensesPage() {
                           className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
                         >
                           <FileText size={14} />
-                          <span className="text-sm">View</span>
+                          <span className="text-sm">{t('common.view')}</span>
                           <ExternalLink size={12} />
                         </a>
                       ) : (
                         <span className="text-slate-500 text-sm">-</span>
                       )}
                     </td>
-                    <td><span className={`status-badge ${expense.status}`}>{expense.status}</span></td>
+                    <td><span className={`status-badge ${expense.status}`}>{getStatusLabel(expense.status)}</span></td>
                     <td className="text-right font-mono font-medium">{formatCurrency(expense.amount)}</td>
                     {isAdmin && (
                       <td>
