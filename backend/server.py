@@ -383,7 +383,26 @@ class HSEDocumentResponse(BaseModel):
 class InviteUserRequest(BaseModel):
     email: EmailStr
     name: str
-    role: str = "member"  # member, admin
+    role: str = "member"  # employee, hr, member, admin
+
+class UpdateUserRoleRequest(BaseModel):
+    role: str = Field(..., description="New role: employee, hr, member, admin")
+
+class CreateUserRequest(BaseModel):
+    email: EmailStr
+    name: str
+    password: str = Field(min_length=8)
+    role: str = "employee"  # employee, hr, member, admin
+
+class UserManagementResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    user_id: str
+    email: str
+    name: str
+    role: str
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+    last_login: Optional[datetime] = None
 
 # Payroll Run Models
 class PayrollRunCreate(BaseModel):
