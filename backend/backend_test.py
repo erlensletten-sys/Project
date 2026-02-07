@@ -387,7 +387,7 @@ class NordicForgeAPITester:
             "Create Checklist",
             "POST",
             "checklists",
-            200,
+            201,
             data=checklist_data
         )
         
