@@ -282,6 +282,56 @@ class EmailSettingsUpdate(BaseModel):
     sender_email: str
     sender_name: str = "NordicForge"
 
+# Work Log Models (Akkord/Piece-rate Payment)
+class WorkLogCreate(BaseModel):
+    project_id: str
+    date: datetime
+    description: Optional[str] = None
+    area: float = Field(ge=0, description="Area in square meters")
+    base_operation: str  # avtrekk, skuring, glatting
+    addons: List[str] = []  # sikatop_x1, sikatop_x2, tykkelse_30_40, tykkelse_40_50, ashford, plastikk
+    hours_worked: float = Field(ge=0)
+
+class WorkLogResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    work_id: str
+    group_id: str
+    project_id: str
+    project_name: Optional[str] = None
+    user_id: str
+    user_name: Optional[str] = None
+    date: datetime
+    description: Optional[str] = None
+    area: float
+    base_operation: str
+    addons: List[str]
+    hours_worked: float
+    rate_per_sqm: float  # Calculated price per m²
+    total_payment: float  # area × rate_per_sqm
+    created_at: datetime
+
+# Akkord pricing constants
+AKKORD_BASE_PRICES = {
+    "avtrekk": 18,
+    "skuring": 22,
+    "glatting": 26
+}
+
+AKKORD_ADDON_PRICES = {
+    "sikatop_x1": 3,
+    "sikatop_x2": 6,
+    "tykkelse_30_40": 3,
+    "tykkelse_40_50": 5,
+    "ashford": 10,
+    "plastikk": 5
+}
+
+def calculate_akkord_rate(base_operation: str, addons: List[str]) -> float:
+    """Calculate total rate per square meter based on operation and add-ons"""
+    base_price = AKKORD_BASE_PRICES.get(base_operation, 0)
+    addon_total = sum(AKKORD_ADDON_PRICES.get(addon, 0) for addon in addons)
+    return base_price + addon_total
+
 class HSEDocumentResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
     document_id: str
