@@ -102,8 +102,8 @@ export default function RegisterPage() {
               <Building2 className="text-white" size={28} strokeWidth={1.5} />
             </div>
             <div>
-              <h1 className="heading text-2xl font-bold text-slate-900">NordicForge</h1>
-              <p className="text-slate-500 text-sm">Business Management Platform</p>
+              <h1 className="heading text-2xl font-bold text-white">NordicForge</h1>
+              <p className="text-slate-400 text-sm">Business Management Platform</p>
             </div>
           </div>
 
