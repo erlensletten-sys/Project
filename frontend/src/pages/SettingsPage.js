@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/i18n';
+import { useTheme } from '@/contexts/ThemeContext';
 import { getGroup, getGroupMembers, inviteUser } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,14 +22,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Building2, Users, UserPlus, Loader2, Copy, Check, Mail, Globe, CheckCircle, XCircle, Save, Edit } from 'lucide-react';
+import { Building2, Users, UserPlus, Loader2, Copy, Check, Mail, Globe, CheckCircle, XCircle, Save, Edit, Palette, Sun, Moon } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+const ACCENT_COLOR_NAMES = {
+  green: { en: 'Green', nb: 'Grønn' },
+  yellow: { en: 'Yellow', nb: 'Gul' },
+  purple: { en: 'Purple', nb: 'Lilla' },
+  blue: { en: 'Blue', nb: 'Blå' },
+  orange: { en: 'Orange', nb: 'Oransje' },
+};
+
 export default function SettingsPage() {
   const { user } = useAuth();
   const { t, language, changeLanguage } = useLanguage();
+  const { mode, setMode, accentColor, setAccentColor, availableColors } = useTheme();
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
