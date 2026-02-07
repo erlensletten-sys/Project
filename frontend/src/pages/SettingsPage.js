@@ -1007,6 +1007,14 @@ export default function SettingsPage() {
                 member: <User size={12} />,
                 employee: <User size={12} />
               };
+              // Map role names to translation keys
+              const roleTranslationKeys = {
+                owner: 'settings.roleOwner',
+                admin: 'settings.roleAdmin',
+                hr: 'settings.roleHR',
+                member: 'settings.roleMember',
+                employee: 'settings.roleEmployee'
+              };
               
               return (
                 <div 
