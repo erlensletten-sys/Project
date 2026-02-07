@@ -171,6 +171,33 @@ export const sendInvoice = (invoiceId, recipientEmail = null) =>
     body: JSON.stringify({ recipient_email: recipientEmail })
   });
 
+// Work Logs (Akkord/Piece-rate)
+export const getWorkLogs = (projectId = null, userId = null) => {
+  const params = new URLSearchParams();
+  if (projectId) params.append('project_id', projectId);
+  if (userId) params.append('user_id', userId);
+  const query = params.toString();
+  return fetchAPI(`/api/work-logs${query ? `?${query}` : ''}`);
+};
+
+export const getMyWorkLogs = (projectId = null) => {
+  const params = new URLSearchParams();
+  if (projectId) params.append('project_id', projectId);
+  const query = params.toString();
+  return fetchAPI(`/api/work-logs/my${query ? `?${query}` : ''}`);
+};
+
+export const createWorkLog = (data) =>
+  fetchAPI('/api/work-logs', { method: 'POST', body: JSON.stringify(data) });
+
+export const deleteWorkLog = (workId) =>
+  fetchAPI(`/api/work-logs/${workId}`, { method: 'DELETE' });
+
+export const getProjectWorkSummary = (projectId) =>
+  fetchAPI(`/api/work-logs/summary/project/${projectId}`);
+
+export const getAkkordPricing = () => fetchAPI('/api/akkord/pricing');
+
 // Utility
 export const formatCurrency = (amount, currency = 'NOK') => {
   return new Intl.NumberFormat('nb-NO', {
