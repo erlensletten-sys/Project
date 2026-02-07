@@ -2434,7 +2434,7 @@ async def create_work_log(request: Request, work: WorkLogCreate):
             "payment": round(worker_payment, 2)
         })
     
-    work_id = generate_slug("wrk")
+    work_id = f"wrk_{uuid.uuid4().hex[:12]}"
     now = datetime.now(timezone.utc)
     
     work_log = {
