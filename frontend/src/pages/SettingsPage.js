@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Building2, Users, UserPlus, Loader2, Copy, Check, Mail, Globe, CheckCircle, XCircle, Save, Edit, Palette, Sun, Moon } from 'lucide-react';
+import { Building2, Users, UserPlus, Loader2, Copy, Check, Mail, Globe, CheckCircle, XCircle, Save, Edit, Palette, Sun, Moon, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
