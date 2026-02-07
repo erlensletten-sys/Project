@@ -675,6 +675,283 @@ class NordicForgeAPITester:
         
         return success
 
+    def test_form_builder_features(self):
+        """Test comprehensive form builder functionality"""
+        print("\n--- Testing Form Builder Features ---")
+        
+        # Test 1: Create form template (admin only)
+        form_template_data = {
+            "title": "Safety Inspection Form",
+            "description": "Daily safety inspection checklist with multiple field types",
+            "category": "safety",
+            "fields": [
+                {
+                    "field_type": "text",
+                    "label": "Inspector Name",
+                    "required": True,
+                    "placeholder": "Enter inspector name"
+                },
+                {
+                    "field_type": "textarea",
+                    "label": "General Comments",
+                    "required": False,
+                    "placeholder": "Any additional comments"
+                },
+                {
+                    "field_type": "number",
+                    "label": "Temperature Reading",
+                    "required": True,
+                    "placeholder": "Temperature in Celsius"
+                },
+                {
+                    "field_type": "checkbox",
+                    "label": "Emergency exits clear",
+                    "required": True
+                },
+                {
+                    "field_type": "select",
+                    "label": "Safety Level",
+                    "required": True,
+                    "options": ["Excellent", "Good", "Needs Improvement", "Poor"]
+                },
+                {
+                    "field_type": "date",
+                    "label": "Inspection Date",
+                    "required": True
+                }
+            ]
+        }
+        
+        success1, form_data, response = self.run_test(
+            "Create Form Template",
+            "POST",
+            "forms",
+            201,
+            data=form_template_data
+        )
+        
+        form_id = None
+        if success1 and isinstance(form_data, dict):
+            form_id = form_data.get('form_id')
+            if (form_id and form_data.get('title') == form_template_data['title'] and
+                len(form_data.get('fields', [])) == 6):
+                print("   ✓ Form template created with all field types")
+            else:
+                print("   ⚠ Form template creation response incorrect")
+                return False
+        else:
+            return False
+            
+        # Test 2: List form templates
+        success2, forms_data, response = self.run_test(
+            "List Form Templates",
+            "GET",
+            "forms",
+            200
+        )
+        
+        if success2 and isinstance(forms_data, list) and len(forms_data) > 0:
+            found_form = next((f for f in forms_data if f.get('form_id') == form_id), None)
+            if found_form:
+                print("   ✓ Form template listed successfully")
+            else:
+                print("   ⚠ Created form not found in list")
+                return False
+        else:
+            print("   ⚠ Failed to list form templates")
+            return False
+            
+        # Test 3: Get specific form template
+        success3, single_form, response = self.run_test(
+            "Get Form Template",
+            "GET",
+            f"forms/{form_id}",
+            200
+        )
+        
+        if success3 and isinstance(single_form, dict):
+            if single_form.get('form_id') == form_id:
+                print("   ✓ Form template retrieved successfully")
+            else:
+                print("   ⚠ Form template retrieval incorrect")
+                return False
+        else:
+            return False
+            
+        # Test 4: Submit form response (requires project for linking)
+        project_id = self.get_or_create_project_for_testing()
+        
+        form_submission_data = {
+            "form_id": form_id,
+            "project_id": project_id,
+            "responses": {
+                # Get field IDs from the created form
+                single_form['fields'][0]['field_id']: "John Safety Inspector",
+                single_form['fields'][1]['field_id']: "All safety equipment in good condition",
+                single_form['fields'][2]['field_id']: "22.5",
+                single_form['fields'][3]['field_id']: True,
+                single_form['fields'][4]['field_id']: "Good",
+                single_form['fields'][5]['field_id']: "2024-12-26"
+            }
+        }
+        
+        success4, submission_data, response = self.run_test(
+            "Submit Form Response",
+            "POST",
+            f"forms/{form_id}/submissions",
+            201,
+            data=form_submission_data
+        )
+        
+        submission_id = None
+        if success4 and isinstance(submission_data, dict):
+            submission_id = submission_data.get('submission_id')
+            if (submission_id and submission_data.get('form_title') == form_template_data['title']):
+                print("   ✓ Form submission created successfully")
+            else:
+                print("   ⚠ Form submission response incorrect")
+                return False
+        else:
+            return False
+            
+        # Test 5: List all submissions
+        success5, all_submissions, response = self.run_test(
+            "List All Submissions",
+            "GET",
+            "submissions",
+            200
+        )
+        
+        if success5 and isinstance(all_submissions, list) and len(all_submissions) > 0:
+            found_submission = next((s for s in all_submissions if s.get('submission_id') == submission_id), None)
+            if found_submission:
+                print("   ✓ Form submission listed in all submissions")
+            else:
+                print("   ⚠ Form submission not found in all submissions")
+                return False
+        else:
+            print("   ⚠ Failed to list all submissions")
+            return False
+            
+        # Test 6: Get specific submission
+        success6, single_submission, response = self.run_test(
+            "Get Form Submission",
+            "GET",
+            f"submissions/{submission_id}",
+            200
+        )
+        
+        if success6 and isinstance(single_submission, dict):
+            if single_submission.get('submission_id') == submission_id:
+                print("   ✓ Form submission retrieved successfully")
+            else:
+                print("   ⚠ Form submission retrieval incorrect")
+                return False
+        else:
+            return False
+            
+        # Test 7: List submissions for specific form
+        success7, form_submissions, response = self.run_test(
+            "List Form Submissions",
+            "GET",
+            f"forms/{form_id}/submissions",
+            200
+        )
+        
+        if success7 and isinstance(form_submissions, list) and len(form_submissions) > 0:
+            if form_submissions[0].get('submission_id') == submission_id:
+                print("   ✓ Form submissions for specific form retrieved")
+            else:
+                print("   ⚠ Form submissions for specific form incorrect")
+                return False
+        else:
+            print("   ⚠ Failed to list submissions for specific form")
+            return False
+            
+        # Test 8: Generate PDF for submission
+        success8, pdf_response, response = self.run_test(
+            "Generate Submission PDF",
+            "GET",
+            f"submissions/{submission_id}/pdf",
+            200
+        )
+        
+        if success8 and response:
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("   ✓ PDF generated successfully")
+            else:
+                print(f"   ⚠ PDF generation returned wrong content type: {content_type}")
+                return False
+        else:
+            print("   ⚠ Failed to generate PDF")
+            return False
+            
+        # Test 9: Delete form template (admin only)
+        success9, delete_data, response = self.run_test(
+            "Delete Form Template",
+            "DELETE",
+            f"forms/{form_id}",
+            200
+        )
+        
+        if success9 and isinstance(delete_data, dict):
+            if delete_data.get('ok'):
+                print("   ✓ Form template deleted successfully")
+            else:
+                print("   ⚠ Form template deletion response incorrect")
+                return False
+        else:
+            return False
+            
+        # Test 10: Verify form template is deleted
+        success10, deleted_form, response = self.run_test(
+            "Verify Form Template Deleted",
+            "GET",
+            f"forms/{form_id}",
+            404
+        )
+        
+        if success10:
+            print("   ✓ Form template properly deleted and inaccessible")
+            return True
+        else:
+            print("   ⚠ Deleted form template still accessible")
+            return False
+            
+    def get_or_create_project_for_testing(self):
+        """Helper method to get or create a project for form testing"""
+        # Try to get existing projects first
+        success, projects, response = self.run_test(
+            "Get Projects for Form Testing",
+            "GET", 
+            "projects",
+            200
+        )
+        
+        if success and isinstance(projects, list) and len(projects) > 0:
+            return projects[0]['project_id']
+        
+        # If no projects exist, create one
+        project_data = {
+            "name": "Form Testing Project",
+            "description": "Project created for form builder testing",
+            "client_name": "Test Client"
+        }
+        
+        success, project, response = self.run_test(
+            "Create Project for Form Testing",
+            "POST",
+            "projects", 
+            201,
+            data=project_data
+        )
+        
+        if success and isinstance(project, dict):
+            return project.get('project_id')
+        
+        return None
+
     def test_unauthenticated_access(self):
         """Test that protected endpoints require authentication"""
         print("\n--- Testing Unauthenticated Access Protection ---")
@@ -689,6 +966,8 @@ class NordicForgeAPITester:
             ("projects", "GET"),
             ("checklists", "GET"),
             ("hse-documents", "GET"),
+            ("forms", "GET"),
+            ("submissions", "GET"),
             ("group", "GET")
         ]
         
