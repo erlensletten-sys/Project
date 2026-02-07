@@ -1050,6 +1050,10 @@ def main():
     else:
         print("   ⚠ Skipping email test - no invoice available")
     
+    # Test NEW FEATURE 5: Form Builder System
+    print("\n🆕 Testing Form Builder System...")
+    tester.test_form_builder_features()
+    
     print("\n--- Group Management ---")
     tester.test_group_management()
     
