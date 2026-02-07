@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/i18n';
 import {
   LayoutDashboard,
   FileText,
@@ -17,32 +18,33 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/invoices', label: 'Invoices', icon: FileText },
-  { path: '/payroll', label: 'Payroll', icon: Users },
-  { path: '/expenses', label: 'Expenses', icon: Receipt },
-  { path: '/projects', label: 'Projects', icon: FolderKanban },
-  { path: '/checklists', label: 'Checklists', icon: ClipboardCheck },
-  { path: '/hse', label: 'HSE Documents', icon: ShieldCheck },
-  { path: '/settings', label: 'Settings', icon: Settings },
-];
-
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const navItems = [
+    { path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { path: '/invoices', label: t('nav.invoices'), icon: FileText },
+    { path: '/payroll', label: t('nav.payroll'), icon: Users },
+    { path: '/expenses', label: t('nav.expenses'), icon: Receipt },
+    { path: '/projects', label: t('nav.projects'), icon: FolderKanban },
+    { path: '/checklists', label: t('nav.checklists'), icon: ClipboardCheck },
+    { path: '/hse', label: t('nav.hseDocuments'), icon: ShieldCheck },
+    { path: '/settings', label: t('nav.settings'), icon: Settings },
+  ];
 
   const handleLogout = async () => {
     await logout();
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-900">
       {/* Mobile menu button */}
       <button
         data-testid="mobile-menu-button"
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-slate-900 text-white"
+        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-slate-800 text-white"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
@@ -73,7 +75,7 @@ export default function Layout({ children }) {
                 <Link
                   key={item.path}
                   to={item.path}
-                  data-testid={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
+                  data-testid={`nav-${item.path.replace('/', '') || 'dashboard'}`}
                   className={`sidebar-link ${isActive ? 'active' : ''}`}
                   onClick={() => setSidebarOpen(false)}
                 >
@@ -103,7 +105,7 @@ export default function Layout({ children }) {
             onClick={handleLogout}
           >
             <LogOut size={16} strokeWidth={1.5} className="mr-2" />
-            Sign out
+            {t('nav.signOut')}
           </Button>
         </div>
       </aside>
