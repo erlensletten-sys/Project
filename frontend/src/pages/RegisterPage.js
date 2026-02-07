@@ -107,15 +107,15 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <Card className="border-slate-200">
+          <Card className="border-slate-700 bg-slate-800">
             <CardHeader>
-              <CardTitle className="heading text-xl">Create your organization</CardTitle>
-              <CardDescription>Set up your business management account</CardDescription>
+              <CardTitle className="heading text-xl text-white">Create your organization</CardTitle>
+              <CardDescription className="text-slate-400">Set up your business management account</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="groupName">Organization Name</Label>
+                  <Label htmlFor="groupName" className="text-slate-200">Organization Name</Label>
                   <Input
                     id="groupName"
                     name="groupName"
@@ -125,12 +125,12 @@ export default function RegisterPage() {
                     value={formData.groupName}
                     onChange={handleChange}
                     required
-                    className="h-11"
+                    className="h-11 bg-slate-700 border-slate-600"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name">Your Name</Label>
+                  <Label htmlFor="name" className="text-slate-200">Your Name</Label>
                   <Input
                     id="name"
                     name="name"
@@ -140,12 +140,12 @@ export default function RegisterPage() {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className="h-11"
+                    className="h-11 bg-slate-700 border-slate-600"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-slate-200">Email</Label>
                   <Input
                     id="email"
                     name="email"
