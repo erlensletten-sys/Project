@@ -2296,18 +2296,54 @@ async def create_work_log(request: Request, work: WorkLogCreate):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
-    # Validate base operation
-    if work.base_operation not in AKKORD_BASE_PRICES:
-        raise HTTPException(status_code=400, detail=f"Invalid base operation. Must be one of: {list(AKKORD_BASE_PRICES.keys())}")
+    # Get group settings for hourly rate
+    group = await db.groups.find_one({"group_id": user["group_id"]})
+    hourly_rate = group.get("hourly_rate", 0) if group else 0
     
-    # Validate add-ons
-    invalid_addons = [a for a in work.addons if a not in AKKORD_ADDON_PRICES]
-    if invalid_addons:
-        raise HTTPException(status_code=400, detail=f"Invalid add-ons: {invalid_addons}. Valid options: {list(AKKORD_ADDON_PRICES.keys())}")
+    rate_per_sqm = 0
+    total_payment = 0
     
-    # Calculate rate and total
-    rate_per_sqm = calculate_akkord_rate(work.base_operation, work.addons)
-    total_payment = work.area * rate_per_sqm
+    if work.work_type == "akkord":
+        # Validate base operation for akkord work
+        if not work.base_operation or work.base_operation not in AKKORD_BASE_PRICES:
+            raise HTTPException(status_code=400, detail=f"Invalid base operation. Must be one of: {list(AKKORD_BASE_PRICES.keys())}")
+        
+        # Validate add-ons
+        invalid_addons = [a for a in work.addons if a not in AKKORD_ADDON_PRICES]
+        if invalid_addons:
+            raise HTTPException(status_code=400, detail=f"Invalid add-ons: {invalid_addons}")
+        
+        # Calculate akkord payment
+        rate_per_sqm = calculate_akkord_rate(work.base_operation, work.addons)
+        total_payment = (work.area or 0) * rate_per_sqm
+    else:
+        # Hourly work
+        total_payment = work.total_hours * hourly_rate
+    
+    # Process workers - calculate each worker's share
+    workers_data = []
+    total_worker_hours = sum(w.hours for w in work.workers) if work.workers else work.total_hours
+    
+    for worker in work.workers:
+        # Get worker name
+        worker_doc = await db.users.find_one({"user_id": worker.user_id}, {"name": 1, "_id": 0})
+        worker_name = worker_doc["name"] if worker_doc else "Unknown"
+        
+        # Calculate worker's share
+        if total_worker_hours > 0:
+            share_percentage = worker.hours / total_worker_hours
+            worker_payment = total_payment * share_percentage
+        else:
+            share_percentage = 0
+            worker_payment = 0
+        
+        workers_data.append({
+            "user_id": worker.user_id,
+            "user_name": worker_name,
+            "hours": worker.hours,
+            "share_percentage": round(share_percentage * 100, 2),
+            "payment": round(worker_payment, 2)
+        })
     
     work_id = generate_slug("wrk")
     now = datetime.now(timezone.utc)
@@ -2319,12 +2355,15 @@ async def create_work_log(request: Request, work: WorkLogCreate):
         "user_id": user["user_id"],
         "date": work.date,
         "description": work.description,
-        "area": work.area,
+        "work_type": work.work_type,
+        "area": work.area or 0,
         "base_operation": work.base_operation,
         "addons": work.addons,
-        "hours_worked": work.hours_worked,
+        "total_hours": work.total_hours,
+        "workers": workers_data,
         "rate_per_sqm": rate_per_sqm,
-        "total_payment": total_payment,
+        "hourly_rate": hourly_rate,
+        "total_payment": round(total_payment, 2),
         "created_at": now
     }
     
