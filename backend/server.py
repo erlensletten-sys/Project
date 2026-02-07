@@ -1523,6 +1523,8 @@ async def startup_event():
     await db.tasks.create_index("project_id")
     await db.checklists.create_index("group_id")
     await db.hse_documents.create_index("group_id")
+    await db.payroll_runs.create_index("group_id")
+    await db.files.create_index("group_id")
     
     logger.info("Database indexes created")
 
