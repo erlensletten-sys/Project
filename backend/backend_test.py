@@ -355,7 +355,7 @@ class NordicForgeAPITester:
             "Create Project",
             "POST",
             "projects",
-            200,
+            201,
             data=project_data
         )
         
