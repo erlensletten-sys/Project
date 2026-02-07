@@ -754,6 +754,23 @@ def main():
     success, checklist_id = tester.test_create_checklist()
     success, hse_id = tester.test_create_hse_document()
     
+    print("\n--- NEW FEATURES TESTING ---")
+    
+    # Test NEW FEATURE 1: Payroll runs
+    print("\n🆕 Testing Payroll Run Management...")
+    tester.test_payroll_runs()
+    
+    # Test NEW FEATURE 2 & 3: File upload functionality
+    print("\n🆕 Testing File Upload...")
+    tester.test_file_upload()
+    
+    # Test NEW FEATURE 4: Invoice email sending
+    print("\n🆕 Testing Invoice Email Sending...")
+    if invoice_id:
+        tester.test_send_invoice_email(invoice_id)
+    else:
+        print("   ⚠ Skipping email test - no invoice available")
+    
     print("\n--- Group Management ---")
     tester.test_group_management()
     
