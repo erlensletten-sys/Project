@@ -1124,6 +1124,10 @@ async def invite_user(request: Request, invite: InviteUserRequest):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Validate role
+    valid_roles = ["employee", "hr", "member", "admin"]
+    role = invite.role if invite.role in valid_roles else "employee"
+    
     # Create user with temporary password
     user_id = f"usr_{uuid.uuid4().hex[:12]}"
     temp_password = secrets.token_urlsafe(12)
@@ -1134,8 +1138,9 @@ async def invite_user(request: Request, invite: InviteUserRequest):
         "email": invite.email,
         "name": invite.name,
         "password_hash": password_hash,
-        "role": invite.role if invite.role in ["member", "admin"] else "member",
+        "role": role,
         "group_id": user["group_id"],
+        "is_active": True,
         "created_at": datetime.now(timezone.utc),
         "invited_by": user["user_id"],
         "needs_password_change": True
