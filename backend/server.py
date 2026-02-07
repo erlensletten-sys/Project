@@ -51,6 +51,20 @@ logger = logging.getLogger(__name__)
 SESSION_EXPIRY_DAYS = 7
 SLUG_ENTROPY_BYTES = 16  # 128 bits of entropy for slugs
 
+# User Roles with hierarchy (higher index = more permissions)
+ROLES = ["employee", "hr", "member", "admin", "owner"]
+ROLE_PERMISSIONS = {
+    "employee": ["view_projects", "fill_checklists", "add_expenses", "log_work", "view_own_data"],
+    "hr": ["view_projects", "fill_checklists", "add_expenses", "log_work", "view_own_data", 
+           "manage_employees", "view_payroll", "approve_expenses", "view_all_work_logs"],
+    "member": ["view_projects", "fill_checklists", "add_expenses", "log_work", "view_own_data",
+               "create_invoices", "manage_projects"],
+    "admin": ["view_projects", "fill_checklists", "add_expenses", "log_work", "view_own_data",
+              "manage_employees", "view_payroll", "approve_expenses", "view_all_work_logs",
+              "create_invoices", "manage_projects", "manage_users", "manage_settings", "manage_forms"],
+    "owner": ["*"]  # All permissions
+}
+
 # ============== Pydantic Models ==============
 
 # Auth Models
