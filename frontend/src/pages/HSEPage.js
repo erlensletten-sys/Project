@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLanguage } from '@/i18n';
 import { getHSEDocuments, createHSEDocument, uploadFile, formatDate } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,15 +23,8 @@ import {
 import { Plus, ShieldCheck, Search, Loader2, FileText, AlertTriangle, ExternalLink, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
-const DOCUMENT_TYPES = [
-  { value: 'policy', label: 'Policy' },
-  { value: 'procedure', label: 'Procedure' },
-  { value: 'form', label: 'Form' },
-  { value: 'report', label: 'Report' },
-  { value: 'certificate', label: 'Certificate' }
-];
-
 export default function HSEPage() {
+  const { t } = useLanguage();
   const fileInputRef = useRef(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +41,14 @@ export default function HSEPage() {
     file_url: '',
     expiry_date: ''
   });
+
+  const DOCUMENT_TYPES = [
+    { value: 'policy', label: t('hse.policy') },
+    { value: 'procedure', label: t('hse.procedure') },
+    { value: 'form', label: t('hse.form') },
+    { value: 'report', label: t('hse.report') },
+    { value: 'certificate', label: t('hse.certificate') }
+  ];
 
   useEffect(() => {
     loadDocuments();
@@ -83,7 +85,7 @@ export default function HSEPage() {
       const result = await uploadFile(selectedFile);
       setNewDoc({...newDoc, file_url: result.file_url});
       setSelectedFile(null);
-      toast.success('File uploaded');
+      toast.success(t('hse.fileUploaded'));
     } catch (error) {
       toast.error(error.message || 'Failed to upload file');
     } finally {
@@ -133,6 +135,17 @@ export default function HSEPage() {
     return new Date(expiryDate) <= thirtyDaysFromNow;
   };
 
+  const getDocTypeLabel = (type) => {
+    const labels = {
+      policy: t('hse.policy'),
+      procedure: t('hse.procedure'),
+      form: t('hse.form'),
+      report: t('hse.report'),
+      certificate: t('hse.certificate')
+    };
+    return labels[type] || type;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -146,41 +159,41 @@ export default function HSEPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="heading text-3xl font-bold">HSE Documents</h1>
-          <p className="text-slate-400 mt-1">Health, Safety & Environment documentation</p>
+          <h1 className="heading text-3xl font-bold">{t('hse.title')}</h1>
+          <p className="text-slate-400 mt-1">{t('hse.subtitle')}</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="create-hse-btn" className="bg-orange-500 hover:bg-orange-600">
               <Plus size={16} className="mr-2" />
-              Add Document
+              {t('hse.addDocument')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg bg-slate-900 border-slate-700">
             <DialogHeader>
-              <DialogTitle className="heading">Add HSE Document</DialogTitle>
+              <DialogTitle className="heading">{t('hse.addDocument')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="hse-title">Title *</Label>
+                <Label htmlFor="hse-title">{t('common.name')} *</Label>
                 <Input
                   id="hse-title"
                   data-testid="hse-title-input"
                   value={newDoc.title}
                   onChange={(e) => setNewDoc({...newDoc, title: e.target.value})}
-                  placeholder="Document title"
+                  placeholder={t('common.name')}
                   required
                   className="bg-slate-800 border-slate-700"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Document Type *</Label>
+                <Label>{t('hse.documentType')} *</Label>
                 <Select
                   value={newDoc.document_type}
                   onValueChange={(value) => setNewDoc({...newDoc, document_type: value})}
                 >
                   <SelectTrigger data-testid="hse-type-select" className="bg-slate-800 border-slate-700">
-                    <SelectValue placeholder="Select type" />
+                    <SelectValue placeholder={t('common.filter')} />
                   </SelectTrigger>
                   <SelectContent>
                     {DOCUMENT_TYPES.map(type => (
@@ -190,13 +203,13 @@ export default function HSEPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="hse-content">Content / Summary</Label>
+                <Label htmlFor="hse-content">{t('hse.content')}</Label>
                 <Textarea
                   id="hse-content"
                   data-testid="hse-content-input"
                   value={newDoc.content}
                   onChange={(e) => setNewDoc({...newDoc, content: e.target.value})}
-                  placeholder="Document content or summary"
+                  placeholder={t('hse.content')}
                   rows={4}
                   className="bg-slate-800 border-slate-700"
                 />
@@ -204,12 +217,12 @@ export default function HSEPage() {
               
               {/* File Upload */}
               <div className="space-y-2">
-                <Label>Attach File</Label>
+                <Label>{t('hse.attachFile')}</Label>
                 <div className="space-y-2">
                   {newDoc.file_url ? (
                     <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                       <FileText size={16} className="text-green-400" />
-                      <span className="text-sm text-green-400 flex-1">File uploaded</span>
+                      <span className="text-sm text-green-400 flex-1">{t('hse.fileUploaded')}</span>
                       <Button
                         type="button"
                         variant="ghost"
@@ -217,7 +230,7 @@ export default function HSEPage() {
                         onClick={() => setNewDoc({...newDoc, file_url: ''})}
                         className="text-red-400 hover:text-red-300"
                       >
-                        Remove
+                        {t('common.delete')}
                       </Button>
                     </div>
                   ) : (
@@ -236,7 +249,7 @@ export default function HSEPage() {
                         className="flex-1 border-slate-700 hover:bg-slate-800"
                       >
                         <Upload size={16} className="mr-2" />
-                        {selectedFile ? selectedFile.name : 'Select File'}
+                        {selectedFile ? selectedFile.name : t('hse.selectFile')}
                       </Button>
                       {selectedFile && (
                         <Button
@@ -245,17 +258,17 @@ export default function HSEPage() {
                           disabled={uploading}
                           className="bg-blue-500 hover:bg-blue-600"
                         >
-                          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
+                          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('common.upload')}
                         </Button>
                       )}
                     </div>
                   )}
-                  <p className="text-xs text-slate-500">Supported: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG (max 10MB)</p>
+                  <p className="text-xs text-slate-500">{t('hse.supported')}</p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="hse-expiry">Expiry Date</Label>
+                <Label htmlFor="hse-expiry">{t('hse.expiryDate')}</Label>
                 <Input
                   id="hse-expiry"
                   data-testid="hse-expiry-input"
@@ -267,11 +280,11 @@ export default function HSEPage() {
               </div>
               <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={closeDialog}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={creating}>
                   {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Add Document
+                  {t('hse.addDocument')}
                 </Button>
               </div>
             </form>
@@ -287,7 +300,7 @@ export default function HSEPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <Input
                 data-testid="search-hse"
-                placeholder="Search documents..."
+                placeholder={t('common.search') + '...'}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 bg-slate-800 border-slate-700"
@@ -295,10 +308,10 @@ export default function HSEPage() {
             </div>
             <Select value={filter} onValueChange={setFilter}>
               <SelectTrigger data-testid="filter-hse" className="w-[180px] bg-slate-800 border-slate-700">
-                <SelectValue placeholder="Filter by type" />
+                <SelectValue placeholder={t('common.filter')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="all">{t('common.all')}</SelectItem>
                 {DOCUMENT_TYPES.map(type => (
                   <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
                 ))}
@@ -314,8 +327,8 @@ export default function HSEPage() {
           <CardContent>
             <div className="empty-state py-16">
               <ShieldCheck size={48} className="text-slate-600" strokeWidth={1} />
-              <h3 className="font-medium mt-4">No documents found</h3>
-              <p className="text-sm mt-1 text-slate-500">Add your first HSE document to get started</p>
+              <h3 className="font-medium mt-4">{t('hse.noDocuments')}</h3>
+              <p className="text-sm mt-1 text-slate-500">{t('hse.addFirst')}</p>
             </div>
           </CardContent>
         </Card>
@@ -345,7 +358,7 @@ export default function HSEPage() {
                     </div>
                     <div>
                       <CardTitle className="heading text-base">{doc.title}</CardTitle>
-                      <p className="text-xs text-slate-500 capitalize">{doc.document_type}</p>
+                      <p className="text-xs text-slate-500 capitalize">{getDocTypeLabel(doc.document_type)}</p>
                     </div>
                   </div>
                 </div>
@@ -355,11 +368,11 @@ export default function HSEPage() {
                   <p className="text-sm text-slate-400 line-clamp-2">{doc.content}</p>
                 )}
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Created: {formatDate(doc.created_at)}</span>
+                  <span className="text-slate-500">{t('common.date')}: {formatDate(doc.created_at)}</span>
                   {doc.expiry_date && (
                     <span className={`flex items-center gap-1 ${isExpiringSoon(doc.expiry_date) ? 'text-amber-400 font-medium' : 'text-slate-500'}`}>
                       {isExpiringSoon(doc.expiry_date) && <AlertTriangle size={14} />}
-                      Expires: {formatDate(doc.expiry_date)}
+                      {t('hse.expires')}: {formatDate(doc.expiry_date)}
                     </span>
                   )}
                 </div>
@@ -370,7 +383,7 @@ export default function HSEPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-sm text-orange-400 hover:text-orange-300"
                   >
-                    View Document <ExternalLink size={14} />
+                    {t('hse.viewDocument')} <ExternalLink size={14} />
                   </a>
                 )}
               </CardContent>

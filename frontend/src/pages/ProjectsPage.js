@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getProjects, createProject, formatDate } from '@/lib/api';
+import { useLanguage } from '@/i18n';
+import { getProjects, createProject, formatDate, formatCurrency } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,7 @@ import { Plus, FolderKanban, Search, Loader2, ArrowRight, CalendarDays, ListTodo
 import { toast } from 'sonner';
 
 export default function ProjectsPage() {
+  const { t } = useLanguage();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -72,6 +74,16 @@ export default function ProjectsPage() {
     }
   };
 
+  const getStatusLabel = (status) => {
+    const labels = {
+      planning: t('projects.planning'),
+      active: t('projects.active'),
+      completed: t('projects.completed'),
+      'on-hold': t('projects.onHold')
+    };
+    return labels[status] || status;
+  };
+
   const filteredProjects = projects.filter(proj =>
     proj.name.toLowerCase().includes(search.toLowerCase()) ||
     proj.client_name?.toLowerCase().includes(search.toLowerCase())
@@ -90,55 +102,55 @@ export default function ProjectsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="heading text-3xl font-bold text-slate-900">Projects</h1>
-          <p className="text-slate-500 mt-1">Manage your projects and tasks</p>
+          <h1 className="heading text-3xl font-bold text-slate-900">{t('projects.title')}</h1>
+          <p className="text-slate-500 mt-1">{t('projects.subtitle')}</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="create-project-btn" className="bg-orange-500 hover:bg-orange-600">
               <Plus size={16} className="mr-2" />
-              New Project
+              {t('projects.newProject')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle className="heading">Create New Project</DialogTitle>
+              <DialogTitle className="heading">{t('projects.newProject')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="proj-name">Project Name *</Label>
+                <Label htmlFor="proj-name">{t('projects.projectName')} *</Label>
                 <Input
                   id="proj-name"
                   data-testid="project-name-input"
                   value={newProject.name}
                   onChange={(e) => setNewProject({...newProject, name: e.target.value})}
-                  placeholder="Project name"
+                  placeholder={t('projects.projectName')}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="proj-desc">Description</Label>
+                <Label htmlFor="proj-desc">{t('common.description')}</Label>
                 <Textarea
                   id="proj-desc"
                   data-testid="project-description-input"
                   value={newProject.description}
                   onChange={(e) => setNewProject({...newProject, description: e.target.value})}
-                  placeholder="Brief project description"
+                  placeholder={t('common.description')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="proj-client">Client</Label>
+                <Label htmlFor="proj-client">{t('projects.client')}</Label>
                 <Input
                   id="proj-client"
                   data-testid="project-client-input"
                   value={newProject.client_name}
                   onChange={(e) => setNewProject({...newProject, client_name: e.target.value})}
-                  placeholder="Client or company name"
+                  placeholder={t('projects.client')}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="proj-start">Start Date</Label>
+                  <Label htmlFor="proj-start">{t('payroll.startDate')}</Label>
                   <Input
                     id="proj-start"
                     data-testid="project-start-input"
@@ -148,7 +160,7 @@ export default function ProjectsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="proj-end">End Date</Label>
+                  <Label htmlFor="proj-end">{t('projects.timeline')}</Label>
                   <Input
                     id="proj-end"
                     data-testid="project-end-input"
@@ -159,7 +171,7 @@ export default function ProjectsPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="proj-budget">Budget (NOK)</Label>
+                <Label htmlFor="proj-budget">{t('projects.budget')} (NOK)</Label>
                 <Input
                   id="proj-budget"
                   data-testid="project-budget-input"
@@ -172,11 +184,11 @@ export default function ProjectsPage() {
               </div>
               <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={creating}>
                   {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Create Project
+                  {t('common.create')}
                 </Button>
               </div>
             </form>
@@ -191,7 +203,7 @@ export default function ProjectsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input
               data-testid="search-projects"
-              placeholder="Search projects..."
+              placeholder={t('common.search') + '...'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -206,8 +218,8 @@ export default function ProjectsPage() {
           <CardContent>
             <div className="empty-state py-16">
               <FolderKanban size={48} className="text-slate-300" strokeWidth={1} />
-              <h3 className="font-medium text-slate-900 mt-4">No projects found</h3>
-              <p className="text-sm mt-1">Create your first project to get started</p>
+              <h3 className="font-medium text-slate-900 mt-4">{t('projects.noProjects')}</h3>
+              <p className="text-sm mt-1">{t('projects.createFirst')}</p>
             </div>
           </CardContent>
         </Card>
@@ -224,7 +236,7 @@ export default function ProjectsPage() {
                     <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                       <FolderKanban className="text-purple-500" size={20} strokeWidth={1.5} />
                     </div>
-                    <span className={`status-badge ${project.status}`}>{project.status}</span>
+                    <span className={`status-badge ${project.status}`}>{getStatusLabel(project.status)}</span>
                   </div>
                   <h3 className="heading font-semibold text-slate-900 mb-1">{project.name}</h3>
                   {project.client_name && (
@@ -233,15 +245,15 @@ export default function ProjectsPage() {
                   <div className="flex items-center gap-4 text-sm text-slate-500 mt-4">
                     <div className="flex items-center gap-1">
                       <CalendarDays size={14} />
-                      <span>{formatDate(project.start_date) || 'No date'}</span>
+                      <span>{formatDate(project.start_date) || t('common.noResults')}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <ListTodo size={14} />
-                      <span>{project.task_count || 0} tasks</span>
+                      <span>{project.task_count || 0} {t('projects.tasks').toLowerCase()}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-end mt-4 text-orange-500">
-                    <span className="text-sm font-medium">View Details</span>
+                    <span className="text-sm font-medium">{t('common.view')}</span>
                     <ArrowRight size={16} className="ml-1" />
                   </div>
                 </CardContent>
