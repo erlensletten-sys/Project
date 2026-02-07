@@ -1153,6 +1153,148 @@ async def invite_user(request: Request, invite: InviteUserRequest):
         "message": f"User invited. Temporary password: {temp_password}"
     }
 
+@api_router.post("/group/users")
+async def create_user_directly(request: Request, create_req: CreateUserRequest):
+    """Create a new user directly in the group (admin only)"""
+    user = await require_admin(request)
+    
+    # Check if email already exists
+    existing = await db.users.find_one({"email": create_req.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Validate role
+    valid_roles = ["employee", "hr", "member", "admin"]
+    role = create_req.role if create_req.role in valid_roles else "employee"
+    
+    # Create user
+    user_id = f"usr_{uuid.uuid4().hex[:12]}"
+    password_hash = hash_password(create_req.password)
+    
+    await db.users.insert_one({
+        "user_id": user_id,
+        "email": create_req.email,
+        "name": create_req.name,
+        "password_hash": password_hash,
+        "role": role,
+        "group_id": user["group_id"],
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc),
+        "created_by": user["user_id"],
+        "needs_password_change": False
+    })
+    
+    return {
+        "ok": True,
+        "user_id": user_id,
+        "message": f"User {create_req.name} created successfully"
+    }
+
+@api_router.put("/group/users/{user_id}/role")
+async def update_user_role(request: Request, user_id: str, role_req: UpdateUserRoleRequest):
+    """Update a user's role (admin only)"""
+    admin = await require_admin(request)
+    
+    # Validate role
+    valid_roles = ["employee", "hr", "member", "admin"]
+    if role_req.role not in valid_roles:
+        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}")
+    
+    # Find the target user
+    target_user = await db.users.find_one({
+        "user_id": user_id,
+        "group_id": admin["group_id"]
+    })
+    
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Cannot change owner's role
+    if target_user["role"] == "owner":
+        raise HTTPException(status_code=400, detail="Cannot change owner's role")
+    
+    # Cannot demote yourself if you're the only admin
+    if user_id == admin["user_id"] and role_req.role not in ["admin", "owner"]:
+        admin_count = await db.users.count_documents({
+            "group_id": admin["group_id"],
+            "role": {"$in": ["admin", "owner"]}
+        })
+        if admin_count <= 1:
+            raise HTTPException(status_code=400, detail="Cannot demote yourself - you're the only admin")
+    
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"role": role_req.role, "updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    return {"ok": True, "message": f"User role updated to {role_req.role}"}
+
+@api_router.put("/group/users/{user_id}/deactivate")
+async def deactivate_user(request: Request, user_id: str):
+    """Deactivate a user (admin only)"""
+    admin = await require_admin(request)
+    
+    # Find the target user
+    target_user = await db.users.find_one({
+        "user_id": user_id,
+        "group_id": admin["group_id"]
+    })
+    
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Cannot deactivate owner
+    if target_user["role"] == "owner":
+        raise HTTPException(status_code=400, detail="Cannot deactivate the owner")
+    
+    # Cannot deactivate yourself
+    if user_id == admin["user_id"]:
+        raise HTTPException(status_code=400, detail="Cannot deactivate yourself")
+    
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"is_active": False, "deactivated_at": datetime.now(timezone.utc), "deactivated_by": admin["user_id"]}}
+    )
+    
+    return {"ok": True, "message": "User deactivated"}
+
+@api_router.put("/group/users/{user_id}/activate")
+async def activate_user(request: Request, user_id: str):
+    """Reactivate a user (admin only)"""
+    admin = await require_admin(request)
+    
+    # Find the target user
+    target_user = await db.users.find_one({
+        "user_id": user_id,
+        "group_id": admin["group_id"]
+    })
+    
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"is_active": True}, "$unset": {"deactivated_at": "", "deactivated_by": ""}}
+    )
+    
+    return {"ok": True, "message": "User activated"}
+
+@api_router.get("/group/users")
+async def get_group_users(request: Request, include_inactive: bool = False):
+    """Get all users in the group with management info (admin only)"""
+    admin = await require_admin(request)
+    
+    query = {"group_id": admin["group_id"]}
+    if not include_inactive:
+        query["$or"] = [{"is_active": True}, {"is_active": {"$exists": False}}]
+    
+    users = await db.users.find(
+        query,
+        {"_id": 0, "password_hash": 0}
+    ).sort("created_at", -1).to_list(1000)
+    
+    return users
+
 # ============== Invoice Endpoints ==============
 
 @api_router.get("/invoices", response_model=List[InvoiceResponse])
