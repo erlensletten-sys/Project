@@ -68,6 +68,10 @@ export default function SettingsPage() {
   });
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
+  
+  // Group-specific sender name
+  const [groupSenderName, setGroupSenderName] = useState('');
+  const [savingSenderName, setSavingSenderName] = useState(false);
 
   // Hourly rate settings
   const [hourlyRate, setHourlyRate] = useState(0);
