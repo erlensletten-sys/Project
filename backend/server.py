@@ -467,8 +467,13 @@ async def save_upload_file(file: UploadFile, group_id: str) -> dict:
 
 # ============== Email Helpers ==============
 
+async def get_email_config_from_db(group_id: str):
+    """Get email configuration from database for a group"""
+    config = await db.email_configs.find_one({"group_id": group_id}, {"_id": 0})
+    return config
+
 def get_email_config():
-    """Get email configuration from environment"""
+    """Get email configuration from environment (fallback)"""
     return {
         "smtp_host": os.environ.get('SMTP_HOST', ''),
         "smtp_port": int(os.environ.get('SMTP_PORT', 587)),
@@ -479,8 +484,25 @@ def get_email_config():
         "sender_name": os.environ.get('SENDER_NAME', 'NordicForge')
     }
 
+async def get_effective_email_config(group_id: str):
+    """Get email configuration, checking database first then environment"""
+    db_config = await get_email_config_from_db(group_id)
+    if db_config and db_config.get('smtp_host'):
+        return db_config
+    return get_email_config()
+
+def is_email_configured_env():
+    """Check if email is properly configured from env"""
+    config = get_email_config()
+    return bool(config["smtp_host"] and config["smtp_user"] and config["sender_email"])
+
+async def is_email_configured_for_group(group_id: str):
+    """Check if email is properly configured for a group"""
+    config = await get_effective_email_config(group_id)
+    return bool(config.get("smtp_host") and config.get("smtp_user") and config.get("sender_email"))
+
 def is_email_configured():
-    """Check if email is properly configured"""
+    """Check if email is properly configured (environment only)"""
     config = get_email_config()
     return bool(config["smtp_host"] and config["smtp_user"] and config["sender_email"])
 
