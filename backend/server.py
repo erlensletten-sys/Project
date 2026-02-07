@@ -2239,6 +2239,49 @@ async def test_email_settings(request: Request, test_email: str):
     else:
         raise HTTPException(status_code=500, detail="Failed to send test email. Please check your SMTP configuration and server logs.")
 
+# ============== Group Settings Endpoints ==============
+
+@api_router.get("/settings/group")
+async def get_group_settings(request: Request):
+    """Get group settings including hourly rate"""
+    user = await get_current_user(request)
+    
+    group = await db.groups.find_one({"group_id": user["group_id"]}, {"_id": 0})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    return {
+        "group_id": group["group_id"],
+        "name": group["name"],
+        "hourly_rate": group.get("hourly_rate", 0),
+        "akkord_base_prices": group.get("akkord_base_prices", AKKORD_BASE_PRICES),
+        "akkord_addon_prices": group.get("akkord_addon_prices", AKKORD_ADDON_PRICES)
+    }
+
+@api_router.put("/settings/group")
+async def update_group_settings(request: Request, settings: GroupSettingsUpdate):
+    """Update group settings (admin only)"""
+    user = await require_admin(request)
+    
+    await db.groups.update_one(
+        {"group_id": user["group_id"]},
+        {"$set": {"hourly_rate": settings.hourly_rate, "updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    return {"ok": True, "message": "Group settings updated"}
+
+@api_router.get("/group/employees")
+async def get_group_employees(request: Request):
+    """Get all employees/users in the current group"""
+    user = await get_current_user(request)
+    
+    users = await db.users.find(
+        {"group_id": user["group_id"]},
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1, "role": 1}
+    ).to_list(100)
+    
+    return users
+
 # ============== Work Log Endpoints (Akkord/Piece-rate) ==============
 
 @api_router.get("/work-logs")
