@@ -2025,6 +2025,9 @@ async def startup_event():
     await db.hse_documents.create_index("group_id")
     await db.payroll_runs.create_index("group_id")
     await db.files.create_index("group_id")
+    await db.form_templates.create_index("group_id")
+    await db.form_submissions.create_index("group_id")
+    await db.form_submissions.create_index("form_id")
     
     logger.info("Database indexes created")
 
