@@ -642,6 +642,32 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Per-Group Sender Name */}
+                <div className="pt-4 border-t border-slate-700">
+                  <Label className="mb-2 block">{t('settings.groupSenderName')}</Label>
+                  <div className="flex gap-3 items-center">
+                    <Input
+                      value={groupSenderName}
+                      onChange={(e) => setGroupSenderName(e.target.value)}
+                      placeholder="ProjectDash"
+                      className="w-64 bg-slate-800 border-slate-700"
+                    />
+                    <Button
+                      onClick={handleSaveGroupSenderName}
+                      disabled={savingSenderName}
+                      className="bg-orange-500 hover:bg-orange-600"
+                    >
+                      {savingSenderName ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+                      {t('common.save')}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">{t('settings.groupSenderNameHint')}</p>
+                </div>
+                
+                <p className="text-xs text-amber-400/70 mt-4 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                  {t('settings.globalSmtpNote')}
+                </p>
               </>
             ) : null}
           </CardContent>
