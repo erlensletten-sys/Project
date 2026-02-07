@@ -272,7 +272,7 @@ class HSEDocumentCreate(BaseModel):
     expiry_date: Optional[datetime] = None
     project_id: Optional[str] = None
 
-# Email Settings Model
+# Email Settings Model - Global SMTP (stored in env, configured by admin via UI)
 class EmailSettingsUpdate(BaseModel):
     smtp_host: str
     smtp_port: int = 587
@@ -280,6 +280,10 @@ class EmailSettingsUpdate(BaseModel):
     smtp_password: Optional[str] = None
     smtp_use_tls: bool = True
     sender_email: str
+    sender_name: str = "ProjectDash"
+
+# Per-Group Email Settings Model - Only sender name is customizable per group
+class GroupEmailSettingsUpdate(BaseModel):
     sender_name: str = "ProjectDash"
 
 # Group Settings Model (for hourly rates)
