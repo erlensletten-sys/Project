@@ -1,20 +1,25 @@
 import requests
 import sys
+import json
 from datetime import datetime
+import uuid
 
-class MoltbotAPITester:
-    def __init__(self, base_url="https://brave-torvalds.preview.emergent.test/api"):
+class NordicForgeAPITester:
+    def __init__(self, base_url="https://moltbot-config-205.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0
         self.tests_failed = 0
         self.failed_tests = []
-        self.owner_token = None
-        self.other_token = None
+        self.user_token = None
+        self.user_id = None
+        self.group_id = None
+        self.test_user_email = f"test_{uuid.uuid4().hex[:8]}@example.com"
+        self.test_password = "TestPass123!"
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, headers=None):
+    def run_test(self, name, method, endpoint, expected_status, data=None, headers=None, use_cookies=True):
         """Run a single API test"""
-        url = f"{self.base_url}/{endpoint}"
+        url = f"{self.base_url}/{endpoint}" if endpoint else self.base_url
         if headers is None:
             headers = {'Content-Type': 'application/json'}
 
@@ -23,14 +28,18 @@ class MoltbotAPITester:
         print(f"   URL: {url}")
         
         try:
+            session = requests.Session() if use_cookies else requests
+            
             if method == 'GET':
-                response = requests.get(url, headers=headers, timeout=10)
+                response = session.get(url, headers=headers, timeout=10)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=headers, timeout=10)
+                response = session.post(url, json=data, headers=headers, timeout=10)
             elif method == 'PUT':
-                response = requests.put(url, json=data, headers=headers, timeout=10)
+                response = session.put(url, json=data, headers=headers, timeout=10)
+            elif method == 'PATCH':
+                response = session.patch(url, json=data, headers=headers, timeout=10)
             elif method == 'DELETE':
-                response = requests.delete(url, headers=headers, timeout=10)
+                response = session.delete(url, headers=headers, timeout=10)
 
             success = response.status_code == expected_status
             
@@ -39,9 +48,11 @@ class MoltbotAPITester:
                 print(f"✅ Passed - Status: {response.status_code}")
                 try:
                     response_data = response.json()
-                    print(f"   Response: {response_data}")
+                    print(f"   Response: {str(response_data)[:200]}...")
+                    return True, response_data, response
                 except:
                     print(f"   Response: {response.text[:200]}")
+                    return True, response.text, response
             else:
                 self.tests_failed += 1
                 self.failed_tests.append(name)
@@ -51,274 +62,469 @@ class MoltbotAPITester:
                     print(f"   Error: {error_data}")
                 except:
                     print(f"   Response: {response.text[:200]}")
-
-            return success, response
+                return False, None, response
 
         except requests.exceptions.Timeout:
             self.tests_failed += 1
             self.failed_tests.append(name)
             print(f"❌ Failed - Request timeout")
-            return False, None
+            return False, None, None
         except requests.exceptions.ConnectionError as e:
             self.tests_failed += 1
             self.failed_tests.append(name)
             print(f"❌ Failed - Connection error: {str(e)}")
-            return False, None
+            return False, None, None
         except Exception as e:
             self.tests_failed += 1
             self.failed_tests.append(name)
             print(f"❌ Failed - Error: {str(e)}")
-            return False, None
+            return False, None, None
 
-    def test_root_endpoint(self):
-        """Test root API endpoint"""
-        success, response = self.run_test(
-            "Root API Endpoint",
+    def test_health_check(self):
+        """Test health check endpoint"""
+        print("\n--- Testing Health Check ---")
+        success, data, response = self.run_test(
+            "Health Check",
             "GET",
-            "",
+            "health",
             200
         )
+        if success and isinstance(data, dict):
+            if data.get('status') == 'healthy' and data.get('app') == 'NordicForge':
+                print("   ✓ Health check returned correct app info")
+            else:
+                print("   ⚠ Health check response missing expected fields")
         return success
 
-    def test_moltbot_status_initial(self):
-        """Test Moltbot status endpoint (should not be running initially)"""
-        success, response = self.run_test(
-            "Moltbot Status (Initial)",
-            "GET",
-            "moltbot/status",
-            200
+    def test_register_user(self):
+        """Test user registration with organization creation"""
+        print("\n--- Testing User Registration ---")
+        
+        register_data = {
+            "email": self.test_user_email,
+            "password": self.test_password,
+            "name": "Test User",
+            "group_name": "Test Organization AS"
+        }
+        
+        success, data, response = self.run_test(
+            "Register User with Organization",
+            "POST",
+            "auth/register",
+            200,
+            data=register_data
         )
-        if success:
-            data = response.json()
-            if not data.get('running'):
-                print("   ✓ Moltbot is not running (expected)")
+        
+        if success and isinstance(data, dict):
+            user_info = data.get('user', {})
+            self.user_id = user_info.get('user_id')
+            self.group_id = user_info.get('group_id')
+            
+            if user_info.get('role') == 'owner' and user_info.get('email') == self.test_user_email:
+                print("   ✓ User registered as organization owner")
+                print(f"   User ID: {self.user_id}")
+                print(f"   Group ID: {self.group_id}")
+                
+                # Check if session cookie was set
+                if response and 'Set-Cookie' in response.headers:
+                    print("   ✓ Session cookie set during registration")
+                
                 return True
             else:
-                print("   ⚠ Moltbot is already running")
-                return True
-        return False
+                print("   ⚠ User registration response missing expected fields")
+        
+        return success
 
-    def test_moltbot_start_validation(self, token=None):
-        """Test Moltbot start endpoint validation"""
-        print("\n--- Testing Start Endpoint Validation ---")
+    def test_login_user(self):
+        """Test user login"""
+        print("\n--- Testing User Login ---")
         
-        headers = {'Content-Type': 'application/json'}
-        if token:
-            headers['Authorization'] = f'Bearer {token}'
+        login_data = {
+            "email": self.test_user_email,
+            "password": self.test_password
+        }
         
-        # Test 1: Missing provider
-        success1, _ = self.run_test(
-            "Start without provider",
+        success, data, response = self.run_test(
+            "Login User",
             "POST",
-            "moltbot/start",
-            422,  # Validation error
-            data={"apiKey": "test-key-1234567890"},
-            headers=headers
-        )
-        
-        # Test 2: Invalid provider
-        success2, _ = self.run_test(
-            "Start with invalid provider",
-            "POST",
-            "moltbot/start",
-            400,
-            data={"provider": "invalid", "apiKey": "test-key-1234567890"},
-            headers=headers
-        )
-        
-        # Test 3: Short API key
-        success3, _ = self.run_test(
-            "Start with short API key",
-            "POST",
-            "moltbot/start",
-            400,
-            data={"provider": "anthropic", "apiKey": "short"},
-            headers=headers
-        )
-        
-        return success1 and success2 and success3
-
-    def test_legacy_status_endpoints(self):
-        """Test legacy status check endpoints"""
-        print("\n--- Testing Legacy Status Endpoints ---")
-        
-        # Test POST /status
-        success1, response = self.run_test(
-            "Create Status Check",
-            "POST",
-            "status",
+            "auth/login",
             200,
-            data={"client_name": "test_client"}
+            data=login_data
         )
         
-        # Test GET /status
-        success2, _ = self.run_test(
-            "Get Status Checks",
-            "GET",
-            "status",
-            200
-        )
+        if success and isinstance(data, dict):
+            user_info = data.get('user', {})
+            if user_info.get('user_id') == self.user_id and user_info.get('email') == self.test_user_email:
+                print("   ✓ Login successful with correct user data")
+                
+                # Check if session cookie was set
+                if response and 'Set-Cookie' in response.headers:
+                    print("   ✓ Session cookie set during login")
+                
+                return True
+            else:
+                print("   ⚠ Login response missing expected user data")
         
-        return success1 and success2
+        return success
 
-    def test_auth_unauthenticated(self):
-        """Test that unauthenticated requests are rejected"""
-        print("\n--- Testing Unauthenticated Access ---")
+    def test_login_invalid_credentials(self):
+        """Test login with invalid credentials"""
+        print("\n--- Testing Invalid Login ---")
         
-        # Test GET /auth/me without token
-        success1, _ = self.run_test(
-            "GET /auth/me (unauthenticated)",
-            "GET",
-            "auth/me",
-            401
-        )
+        login_data = {
+            "email": self.test_user_email,
+            "password": "wrong_password"
+        }
         
-        # Test POST /moltbot/start without token
-        success2, _ = self.run_test(
-            "POST /moltbot/start (unauthenticated)",
+        success, data, response = self.run_test(
+            "Login with Invalid Password",
             "POST",
-            "moltbot/start",
+            "auth/login",
             401,
-            data={"provider": "anthropic", "apiKey": "sk-ant-test-1234567890"}
+            data=login_data
         )
         
-        # Test POST /moltbot/stop without token
-        success3, _ = self.run_test(
-            "POST /moltbot/stop (unauthenticated)",
-            "POST",
-            "moltbot/stop",
-            401
-        )
-        
-        # Test GET /moltbot/token without token
-        success4, _ = self.run_test(
-            "GET /moltbot/token (unauthenticated)",
-            "GET",
-            "moltbot/token",
-            401
-        )
-        
-        return success1 and success2 and success3 and success4
+        return success
 
-    def test_auth_with_token(self, token):
-        """Test authenticated access with token"""
-        print("\n--- Testing Authenticated Access ---")
+    def test_get_current_user(self):
+        """Test getting current authenticated user"""
+        print("\n--- Testing Get Current User ---")
         
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {token}'
-        }
-        
-        # Test GET /auth/me with token
-        success, response = self.run_test(
-            "GET /auth/me (authenticated)",
+        success, data, response = self.run_test(
+            "Get Current User",
             "GET",
             "auth/me",
-            200,
-            headers=headers
+            200
         )
         
-        if success:
-            data = response.json()
-            if 'user_id' in data and 'email' in data:
-                print("   ✓ User data returned correctly")
+        if success and isinstance(data, dict):
+            if data.get('user_id') == self.user_id and data.get('email') == self.test_user_email:
+                print("   ✓ Current user data correct")
+                return True
             else:
-                print("   ⚠ User data missing expected fields")
+                print("   ⚠ Current user data mismatch")
         
         return success
 
-    def test_moltbot_status_with_auth(self, token):
-        """Test Moltbot status with authentication"""
-        print("\n--- Testing Moltbot Status (Authenticated) ---")
+    def test_dashboard_stats(self):
+        """Test dashboard statistics endpoint"""
+        print("\n--- Testing Dashboard Stats ---")
         
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {token}'
+        success, data, response = self.run_test(
+            "Get Dashboard Stats",
+            "GET",
+            "dashboard/stats",
+            200
+        )
+        
+        if success and isinstance(data, dict):
+            expected_sections = ['invoices', 'payroll', 'expenses', 'projects', 'checklists', 'hse']
+            missing_sections = [section for section in expected_sections if section not in data]
+            
+            if not missing_sections:
+                print("   ✓ All dashboard stat sections present")
+                return True
+            else:
+                print(f"   ⚠ Missing sections: {missing_sections}")
+        
+        return success
+
+    def test_create_invoice(self):
+        """Test creating an invoice"""
+        print("\n--- Testing Invoice Creation ---")
+        
+        invoice_data = {
+            "customer_name": "Test Customer AS",
+            "customer_email": "customer@example.com",
+            "customer_address": "Test Address 123, Oslo",
+            "items": [
+                {
+                    "description": "Consulting Services",
+                    "quantity": 10,
+                    "unit_price": 1500,
+                    "vat_rate": 25.0
+                }
+            ],
+            "notes": "Test invoice for API testing"
         }
         
-        success, response = self.run_test(
-            "GET /moltbot/status (authenticated)",
-            "GET",
-            "moltbot/status",
-            200,
-            headers=headers
+        success, data, response = self.run_test(
+            "Create Invoice",
+            "POST",
+            "invoices",
+            201,
+            data=invoice_data
         )
         
-        if success:
-            data = response.json()
-            print(f"   Running: {data.get('running')}")
-            if data.get('running'):
-                print(f"   Owner: {data.get('owner_user_id')}")
-                print(f"   Is Owner: {data.get('is_owner')}")
+        if success and isinstance(data, dict):
+            if data.get('invoice_number') and data.get('total') == 18750.0:  # 15000 + 25% VAT
+                print("   ✓ Invoice created with correct calculations")
+                return True, data.get('invoice_id')
+            else:
+                print("   ⚠ Invoice creation response incorrect")
+        
+        return success, None
+
+    def test_list_invoices(self):
+        """Test listing invoices"""
+        print("\n--- Testing Invoice Listing ---")
+        
+        success, data, response = self.run_test(
+            "List Invoices",
+            "GET",
+            "invoices",
+            200
+        )
+        
+        if success and isinstance(data, list):
+            print(f"   ✓ Retrieved {len(data)} invoices")
+            return True
         
         return success
 
-    def test_logout(self, token):
-        """Test logout endpoint"""
+    def test_create_employee(self):
+        """Test creating an employee"""
+        print("\n--- Testing Employee Creation ---")
+        
+        employee_data = {
+            "name": "John Doe",
+            "email": "john.doe@example.com",
+            "position": "Senior Developer",
+            "department": "Engineering",
+            "salary": 75000
+        }
+        
+        success, data, response = self.run_test(
+            "Create Employee",
+            "POST",
+            "employees",
+            200,
+            data=employee_data
+        )
+        
+        if success and isinstance(data, dict):
+            if data.get('name') == employee_data['name'] and data.get('status') == 'active':
+                print("   ✓ Employee created successfully")
+                return True, data.get('employee_id')
+            else:
+                print("   ⚠ Employee creation response incorrect")
+        
+        return success, None
+
+    def test_create_expense(self):
+        """Test creating an expense"""
+        print("\n--- Testing Expense Creation ---")
+        
+        expense_data = {
+            "description": "Office Supplies",
+            "amount": 2500.50,
+            "category": "Office"
+        }
+        
+        success, data, response = self.run_test(
+            "Create Expense",
+            "POST",
+            "expenses",
+            200,
+            data=expense_data
+        )
+        
+        if success and isinstance(data, dict):
+            if data.get('description') == expense_data['description'] and data.get('status') == 'pending':
+                print("   ✓ Expense created successfully")
+                return True, data.get('expense_id')
+            else:
+                print("   ⚠ Expense creation response incorrect")
+        
+        return success, None
+
+    def test_create_project(self):
+        """Test creating a project"""
+        print("\n--- Testing Project Creation ---")
+        
+        project_data = {
+            "name": "Website Redesign",
+            "description": "Complete redesign of company website",
+            "client_name": "ABC Corp",
+            "budget": 150000
+        }
+        
+        success, data, response = self.run_test(
+            "Create Project",
+            "POST",
+            "projects",
+            200,
+            data=project_data
+        )
+        
+        if success and isinstance(data, dict):
+            if data.get('name') == project_data['name'] and data.get('status') == 'planning':
+                print("   ✓ Project created successfully")
+                return True, data.get('project_id')
+            else:
+                print("   ⚠ Project creation response incorrect")
+        
+        return success, None
+
+    def test_create_checklist(self):
+        """Test creating a checklist"""
+        print("\n--- Testing Checklist Creation ---")
+        
+        checklist_data = {
+            "title": "Safety Inspection Checklist",
+            "description": "Daily safety inspection procedures",
+            "category": "safety",
+            "items": [
+                {"text": "Check fire extinguishers", "required": True},
+                {"text": "Inspect safety equipment", "required": True},
+                {"text": "Verify emergency exits", "required": False}
+            ]
+        }
+        
+        success, data, response = self.run_test(
+            "Create Checklist",
+            "POST",
+            "checklists",
+            200,
+            data=checklist_data
+        )
+        
+        if success and isinstance(data, dict):
+            if data.get('title') == checklist_data['title'] and data.get('total_items') == 3:
+                print("   ✓ Checklist created successfully")
+                return True, data.get('checklist_id')
+            else:
+                print("   ⚠ Checklist creation response incorrect")
+        
+        return success, None
+
+    def test_create_hse_document(self):
+        """Test creating an HSE document"""
+        print("\n--- Testing HSE Document Creation ---")
+        
+        hse_data = {
+            "title": "Safety Policy 2024",
+            "document_type": "policy",
+            "content": "This is the company safety policy for 2024..."
+        }
+        
+        success, data, response = self.run_test(
+            "Create HSE Document",
+            "POST",
+            "hse-documents",
+            200,
+            data=hse_data
+        )
+        
+        if success and isinstance(data, dict):
+            if data.get('title') == hse_data['title'] and data.get('status') == 'active':
+                print("   ✓ HSE document created successfully")
+                return True, data.get('document_id')
+            else:
+                print("   ⚠ HSE document creation response incorrect")
+        
+        return success, None
+
+    def test_group_management(self):
+        """Test group management endpoints"""
+        print("\n--- Testing Group Management ---")
+        
+        # Test get my group
+        success1, data, response = self.run_test(
+            "Get My Group",
+            "GET",
+            "group",
+            200
+        )
+        
+        group_valid = False
+        if success1 and isinstance(data, dict):
+            if data.get('group_id') == self.group_id and data.get('name'):
+                print("   ✓ Group data retrieved correctly")
+                group_valid = True
+            else:
+                print("   ⚠ Group data incorrect")
+        
+        # Test get group members
+        success2, data, response = self.run_test(
+            "Get Group Members",
+            "GET",
+            "group/members",
+            200
+        )
+        
+        members_valid = False
+        if success2 and isinstance(data, list):
+            if len(data) > 0 and data[0].get('user_id') == self.user_id:
+                print("   ✓ Group members retrieved correctly")
+                members_valid = True
+            else:
+                print("   ⚠ Group members data incorrect")
+        
+        return success1 and success2 and group_valid and members_valid
+
+    def test_logout(self):
+        """Test logout functionality"""
         print("\n--- Testing Logout ---")
         
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {token}'
-        }
-        
-        success, response = self.run_test(
-            "POST /auth/logout",
+        success, data, response = self.run_test(
+            "Logout User",
             "POST",
             "auth/logout",
-            200,
-            headers=headers
+            200
         )
+        
+        if success and isinstance(data, dict):
+            if data.get('ok') and data.get('message'):
+                print("   ✓ Logout successful")
+                
+                # Check if cookie was cleared
+                if response and 'Set-Cookie' in response.headers:
+                    cookie_header = response.headers['Set-Cookie']
+                    if 'session_token=' in cookie_header and 'Max-Age=0' in cookie_header:
+                        print("   ✓ Session cookie cleared")
+                    else:
+                        print("   ⚠ Session cookie may not be properly cleared")
+                
+                return True
         
         return success
 
-    def test_ownership_access_control(self, owner_token, other_token):
-        """Test that only owner can access their Moltbot instance"""
-        print("\n--- Testing Ownership & Access Control ---")
+    def test_unauthenticated_access(self):
+        """Test that protected endpoints require authentication"""
+        print("\n--- Testing Unauthenticated Access Protection ---")
         
-        # Note: We can't actually start Moltbot without valid API keys
-        # So we'll test the access control logic by checking status responses
+        # Test endpoints that should require authentication
+        protected_endpoints = [
+            ("auth/me", "GET"),
+            ("dashboard/stats", "GET"),
+            ("invoices", "GET"),
+            ("employees", "GET"),
+            ("expenses", "GET"),
+            ("projects", "GET"),
+            ("checklists", "GET"),
+            ("hse-documents", "GET"),
+            ("group", "GET")
+        ]
         
-        owner_headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {owner_token}'
-        }
+        all_protected = True
+        for endpoint, method in protected_endpoints:
+            success, data, response = self.run_test(
+                f"Protected Endpoint: {method} {endpoint}",
+                method,
+                endpoint,
+                401,
+                use_cookies=False
+            )
+            if not success:
+                all_protected = False
         
-        other_headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {other_token}'
-        }
-        
-        # Test 1: Both users can check status
-        success1, response1 = self.run_test(
-            "Owner checks status",
-            "GET",
-            "moltbot/status",
-            200,
-            headers=owner_headers
-        )
-        
-        success2, response2 = self.run_test(
-            "Other user checks status",
-            "GET",
-            "moltbot/status",
-            200,
-            headers=other_headers
-        )
-        
-        # Test 2: If Moltbot is not running, both should see running=False
-        if success1 and success2:
-            data1 = response1.json()
-            data2 = response2.json()
-            if not data1.get('running') and not data2.get('running'):
-                print("   ✓ Both users see Moltbot is not running")
-            
-        return success1 and success2
+        return all_protected
 
     def print_summary(self):
         """Print test summary"""
         print("\n" + "="*60)
-        print("📊 TEST SUMMARY")
+        print("📊 NORDICFORGE API TEST SUMMARY")
         print("="*60)
         print(f"Total Tests: {self.tests_run}")
         print(f"✅ Passed: {self.tests_passed}")
@@ -334,45 +540,43 @@ class MoltbotAPITester:
 
 def main():
     print("="*60)
-    print("🦞 MOLTBOT API TESTING WITH AUTHENTICATION")
+    print("🏗️ NORDICFORGE BUSINESS MANAGEMENT API TESTING")
     print("="*60)
     print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
-    tester = MoltbotAPITester()
+    tester = NordicForgeAPITester()
     
-    # Get test tokens from environment or use hardcoded test tokens
-    import os
-    owner_token = os.environ.get('TEST_OWNER_TOKEN', 'test_session_owner_1769688072511')
-    other_token = os.environ.get('TEST_OTHER_TOKEN', 'test_session_other_1769688072511')
+    # Run comprehensive tests
+    print("\n--- Infrastructure Tests ---")
+    tester.test_health_check()
     
-    print(f"\nUsing owner token: {owner_token[:20]}...")
-    print(f"Using other token: {other_token[:20]}...")
+    print("\n--- Authentication Flow Tests ---")
+    tester.test_register_user()
+    tester.test_login_user()
+    tester.test_login_invalid_credentials()
+    tester.test_get_current_user()
     
-    # Run tests
-    print("\n--- Basic API Tests ---")
-    tester.test_root_endpoint()
+    print("\n--- Core Business Features ---")
+    tester.test_dashboard_stats()
     
-    print("\n--- Authentication Tests (Unauthenticated) ---")
-    tester.test_auth_unauthenticated()
+    # Test all major features
+    success, invoice_id = tester.test_create_invoice()
+    tester.test_list_invoices()
     
-    print("\n--- Authentication Tests (With Token) ---")
-    tester.test_auth_with_token(owner_token)
+    success, employee_id = tester.test_create_employee()
+    success, expense_id = tester.test_create_expense()
+    success, project_id = tester.test_create_project()
+    success, checklist_id = tester.test_create_checklist()
+    success, hse_id = tester.test_create_hse_document()
     
-    print("\n--- Moltbot Status Tests ---")
-    tester.test_moltbot_status_initial()
-    tester.test_moltbot_status_with_auth(owner_token)
+    print("\n--- Group Management ---")
+    tester.test_group_management()
     
-    print("\n--- Moltbot Start Validation Tests ---")
-    tester.test_moltbot_start_validation(owner_token)
+    print("\n--- Security Tests ---")
+    tester.test_unauthenticated_access()
     
-    print("\n--- Legacy Endpoints Tests ---")
-    tester.test_legacy_status_endpoints()
-    
-    print("\n--- Ownership & Access Control Tests ---")
-    tester.test_ownership_access_control(owner_token, other_token)
-    
-    print("\n--- Logout Test ---")
-    tester.test_logout(owner_token)
+    print("\n--- Session Management ---")
+    tester.test_logout()
     
     # Print summary
     tester.print_summary()
