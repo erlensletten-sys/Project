@@ -1330,6 +1330,334 @@ async def toggle_checklist_item(request: Request, checklist_id: str, item_index:
     
     return {"ok": True, "completed_items": completed_items, "status": status}
 
+# ============== Form Builder Endpoints ==============
+
+@api_router.get("/forms")
+async def list_form_templates(request: Request, category: Optional[str] = None):
+    """List all form templates for the group"""
+    user = await require_auth(request)
+    
+    query = {"group_id": user["group_id"]}
+    if category:
+        query["category"] = category
+    
+    forms = await db.form_templates.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(1000)
+    
+    # Add submission count
+    for form in forms:
+        count = await db.form_submissions.count_documents({"form_id": form["form_id"]})
+        form["submission_count"] = count
+    
+    return forms
+
+@api_router.post("/forms", status_code=201)
+async def create_form_template(request: Request, form: FormTemplateCreate):
+    """Create a new form template (admin only)"""
+    user = await require_admin(request)
+    
+    form_id = f"frm_{uuid.uuid4().hex[:12]}"
+    
+    # Add field IDs
+    fields = []
+    for i, field in enumerate(form.fields):
+        field_data = {
+            "field_id": f"fld_{uuid.uuid4().hex[:8]}",
+            "field_type": field.field_type,
+            "label": field.label,
+            "required": field.required,
+            "options": field.options,
+            "placeholder": field.placeholder,
+            "order": i
+        }
+        fields.append(field_data)
+    
+    form_doc = {
+        "form_id": form_id,
+        "group_id": user["group_id"],
+        "title": form.title,
+        "description": form.description,
+        "category": form.category,
+        "fields": fields,
+        "is_active": True,
+        "created_by": user["user_id"],
+        "created_at": datetime.now(timezone.utc)
+    }
+    
+    await db.form_templates.insert_one(form_doc)
+    form_doc.pop("_id", None)
+    form_doc["submission_count"] = 0
+    return form_doc
+
+@api_router.get("/forms/{form_id}")
+async def get_form_template(request: Request, form_id: str):
+    """Get a specific form template"""
+    user = await require_auth(request)
+    
+    form = await db.form_templates.find_one(
+        {"form_id": form_id, "group_id": user["group_id"]},
+        {"_id": 0}
+    )
+    
+    if not form:
+        raise HTTPException(status_code=404, detail="Form template not found")
+    
+    # Add submission count
+    count = await db.form_submissions.count_documents({"form_id": form_id})
+    form["submission_count"] = count
+    
+    return form
+
+@api_router.delete("/forms/{form_id}")
+async def delete_form_template(request: Request, form_id: str):
+    """Delete a form template (admin only)"""
+    user = await require_admin(request)
+    
+    result = await db.form_templates.delete_one(
+        {"form_id": form_id, "group_id": user["group_id"]}
+    )
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Form template not found")
+    
+    return {"ok": True, "message": "Form template deleted"}
+
+@api_router.get("/forms/{form_id}/submissions")
+async def list_form_submissions(request: Request, form_id: str, project_id: Optional[str] = None):
+    """List all submissions for a form"""
+    user = await require_auth(request)
+    
+    # Verify form exists and belongs to group
+    form = await db.form_templates.find_one(
+        {"form_id": form_id, "group_id": user["group_id"]}
+    )
+    if not form:
+        raise HTTPException(status_code=404, detail="Form template not found")
+    
+    query = {"form_id": form_id, "group_id": user["group_id"]}
+    if project_id:
+        query["project_id"] = project_id
+    
+    submissions = await db.form_submissions.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(1000)
+    
+    # Add form title and project name to each submission
+    for sub in submissions:
+        sub["form_title"] = form["title"]
+        if sub.get("project_id"):
+            project = await db.projects.find_one(
+                {"project_id": sub["project_id"]},
+                {"_id": 0, "name": 1}
+            )
+            sub["project_name"] = project["name"] if project else None
+        
+        # Get submitter name
+        submitter = await db.users.find_one(
+            {"user_id": sub["submitted_by"]},
+            {"_id": 0, "name": 1}
+        )
+        sub["submitted_by_name"] = submitter["name"] if submitter else None
+    
+    return submissions
+
+@api_router.post("/forms/{form_id}/submissions", status_code=201)
+async def create_form_submission(request: Request, form_id: str, submission: FormSubmissionCreate):
+    """Submit a form response"""
+    user = await require_auth(request)
+    
+    # Verify form exists
+    form = await db.form_templates.find_one(
+        {"form_id": form_id, "group_id": user["group_id"]}
+    )
+    if not form:
+        raise HTTPException(status_code=404, detail="Form template not found")
+    
+    if not form.get("is_active", True):
+        raise HTTPException(status_code=400, detail="Form is not active")
+    
+    # Validate required fields
+    for field in form.get("fields", []):
+        if field.get("required"):
+            field_id = field.get("field_id")
+            if field_id not in submission.responses or not submission.responses[field_id]:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Required field '{field.get('label')}' is missing"
+                )
+    
+    # Verify project if provided
+    project_name = None
+    if submission.project_id:
+        project = await db.projects.find_one(
+            {"project_id": submission.project_id, "group_id": user["group_id"]}
+        )
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        project_name = project["name"]
+    
+    submission_id = f"sub_{uuid.uuid4().hex[:12]}"
+    
+    submission_doc = {
+        "submission_id": submission_id,
+        "form_id": form_id,
+        "group_id": user["group_id"],
+        "project_id": submission.project_id,
+        "responses": submission.responses,
+        "submitted_by": user["user_id"],
+        "created_at": datetime.now(timezone.utc)
+    }
+    
+    await db.form_submissions.insert_one(submission_doc)
+    submission_doc.pop("_id", None)
+    
+    # Add extra info for response
+    submission_doc["form_title"] = form["title"]
+    submission_doc["project_name"] = project_name
+    submission_doc["submitted_by_name"] = user["name"]
+    
+    return submission_doc
+
+@api_router.get("/submissions/{submission_id}")
+async def get_form_submission(request: Request, submission_id: str):
+    """Get a specific form submission"""
+    user = await require_auth(request)
+    
+    submission = await db.form_submissions.find_one(
+        {"submission_id": submission_id, "group_id": user["group_id"]},
+        {"_id": 0}
+    )
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    # Get form details
+    form = await db.form_templates.find_one(
+        {"form_id": submission["form_id"]},
+        {"_id": 0}
+    )
+    submission["form_title"] = form["title"] if form else "Unknown Form"
+    submission["form_fields"] = form.get("fields", []) if form else []
+    
+    # Get project name
+    if submission.get("project_id"):
+        project = await db.projects.find_one(
+            {"project_id": submission["project_id"]},
+            {"_id": 0, "name": 1}
+        )
+        submission["project_name"] = project["name"] if project else None
+    
+    # Get submitter name
+    submitter = await db.users.find_one(
+        {"user_id": submission["submitted_by"]},
+        {"_id": 0, "name": 1}
+    )
+    submission["submitted_by_name"] = submitter["name"] if submitter else None
+    
+    return submission
+
+@api_router.get("/submissions/{submission_id}/pdf")
+async def get_form_submission_pdf(request: Request, submission_id: str):
+    """Generate and return PDF for a form submission"""
+    from fastapi.responses import Response as FastAPIResponse
+    
+    user = await require_auth(request)
+    
+    # Get submission
+    submission = await db.form_submissions.find_one(
+        {"submission_id": submission_id, "group_id": user["group_id"]},
+        {"_id": 0}
+    )
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    # Get form details
+    form = await db.form_templates.find_one(
+        {"form_id": submission["form_id"]},
+        {"_id": 0}
+    )
+    
+    if not form:
+        raise HTTPException(status_code=404, detail="Form template not found")
+    
+    # Get group name
+    group = await db.groups.find_one(
+        {"group_id": user["group_id"]},
+        {"_id": 0, "name": 1}
+    )
+    group_name = group["name"] if group else "NordicForge"
+    
+    # Get project name
+    project_name = None
+    if submission.get("project_id"):
+        project = await db.projects.find_one(
+            {"project_id": submission["project_id"]},
+            {"_id": 0, "name": 1}
+        )
+        project_name = project["name"] if project else None
+    
+    # Get submitter name
+    submitter = await db.users.find_one(
+        {"user_id": submission["submitted_by"]},
+        {"_id": 0, "name": 1}
+    )
+    submitted_by_name = submitter["name"] if submitter else None
+    
+    # Generate PDF
+    pdf_bytes = generate_form_submission_pdf(
+        submission, form, group_name, project_name, submitted_by_name
+    )
+    
+    # Generate filename
+    filename = f"{form['title'].replace(' ', '_')}_{submission_id}.pdf"
+    
+    return FastAPIResponse(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@api_router.get("/submissions")
+async def list_all_submissions(request: Request, project_id: Optional[str] = None):
+    """List all form submissions for the group"""
+    user = await require_auth(request)
+    
+    query = {"group_id": user["group_id"]}
+    if project_id:
+        query["project_id"] = project_id
+    
+    submissions = await db.form_submissions.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(1000)
+    
+    # Add form title and project name to each submission
+    for sub in submissions:
+        form = await db.form_templates.find_one(
+            {"form_id": sub["form_id"]},
+            {"_id": 0, "title": 1}
+        )
+        sub["form_title"] = form["title"] if form else "Unknown Form"
+        
+        if sub.get("project_id"):
+            project = await db.projects.find_one(
+                {"project_id": sub["project_id"]},
+                {"_id": 0, "name": 1}
+            )
+            sub["project_name"] = project["name"] if project else None
+        
+        submitter = await db.users.find_one(
+            {"user_id": sub["submitted_by"]},
+            {"_id": 0, "name": 1}
+        )
+        sub["submitted_by_name"] = submitter["name"] if submitter else None
+    
+    return submissions
+
 # ============== HSE Document Endpoints ==============
 
 @api_router.get("/hse-documents", response_model=List[HSEDocumentResponse])
