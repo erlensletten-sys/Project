@@ -2224,6 +2224,227 @@ async def test_email_settings(request: Request, test_email: str):
     else:
         raise HTTPException(status_code=500, detail="Failed to send test email. Please check your SMTP configuration and server logs.")
 
+# ============== Work Log Endpoints (Akkord/Piece-rate) ==============
+
+@api_router.get("/work-logs")
+async def get_work_logs(request: Request, project_id: Optional[str] = None, user_id: Optional[str] = None):
+    """Get work logs for the current user's group"""
+    user = await get_current_user(request)
+    
+    query = {"group_id": user["group_id"]}
+    if project_id:
+        query["project_id"] = project_id
+    if user_id:
+        query["user_id"] = user_id
+    
+    logs = await db.work_logs.find(query, {"_id": 0}).sort("date", -1).to_list(500)
+    
+    # Enrich with project names and user names
+    for log in logs:
+        if log.get("project_id"):
+            project = await db.projects.find_one({"project_id": log["project_id"]}, {"name": 1, "_id": 0})
+            log["project_name"] = project["name"] if project else None
+        user_doc = await db.users.find_one({"user_id": log["user_id"]}, {"name": 1, "_id": 0})
+        log["user_name"] = user_doc["name"] if user_doc else None
+    
+    return logs
+
+@api_router.get("/work-logs/my")
+async def get_my_work_logs(request: Request, project_id: Optional[str] = None):
+    """Get work logs for the current user only"""
+    user = await get_current_user(request)
+    
+    query = {"group_id": user["group_id"], "user_id": user["user_id"]}
+    if project_id:
+        query["project_id"] = project_id
+    
+    logs = await db.work_logs.find(query, {"_id": 0}).sort("date", -1).to_list(500)
+    
+    # Enrich with project names
+    for log in logs:
+        if log.get("project_id"):
+            project = await db.projects.find_one({"project_id": log["project_id"]}, {"name": 1, "_id": 0})
+            log["project_name"] = project["name"] if project else None
+    
+    return logs
+
+@api_router.post("/work-logs")
+async def create_work_log(request: Request, work: WorkLogCreate):
+    """Create a new work log entry"""
+    user = await get_current_user(request)
+    
+    # Validate project exists and belongs to group
+    project = await db.projects.find_one({
+        "project_id": work.project_id,
+        "group_id": user["group_id"]
+    })
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Validate base operation
+    if work.base_operation not in AKKORD_BASE_PRICES:
+        raise HTTPException(status_code=400, detail=f"Invalid base operation. Must be one of: {list(AKKORD_BASE_PRICES.keys())}")
+    
+    # Validate add-ons
+    invalid_addons = [a for a in work.addons if a not in AKKORD_ADDON_PRICES]
+    if invalid_addons:
+        raise HTTPException(status_code=400, detail=f"Invalid add-ons: {invalid_addons}. Valid options: {list(AKKORD_ADDON_PRICES.keys())}")
+    
+    # Calculate rate and total
+    rate_per_sqm = calculate_akkord_rate(work.base_operation, work.addons)
+    total_payment = work.area * rate_per_sqm
+    
+    work_id = generate_slug("wrk")
+    now = datetime.now(timezone.utc)
+    
+    work_log = {
+        "work_id": work_id,
+        "group_id": user["group_id"],
+        "project_id": work.project_id,
+        "user_id": user["user_id"],
+        "date": work.date,
+        "description": work.description,
+        "area": work.area,
+        "base_operation": work.base_operation,
+        "addons": work.addons,
+        "hours_worked": work.hours_worked,
+        "rate_per_sqm": rate_per_sqm,
+        "total_payment": total_payment,
+        "created_at": now
+    }
+    
+    await db.work_logs.insert_one(work_log)
+    
+    # Return without _id
+    work_log.pop("_id", None)
+    work_log["project_name"] = project["name"]
+    
+    return work_log
+
+@api_router.get("/work-logs/{work_id}")
+async def get_work_log(request: Request, work_id: str):
+    """Get a specific work log entry"""
+    user = await get_current_user(request)
+    
+    work_log = await db.work_logs.find_one({
+        "work_id": work_id,
+        "group_id": user["group_id"]
+    }, {"_id": 0})
+    
+    if not work_log:
+        raise HTTPException(status_code=404, detail="Work log not found")
+    
+    # Enrich with project name
+    if work_log.get("project_id"):
+        project = await db.projects.find_one({"project_id": work_log["project_id"]}, {"name": 1, "_id": 0})
+        work_log["project_name"] = project["name"] if project else None
+    
+    return work_log
+
+@api_router.delete("/work-logs/{work_id}")
+async def delete_work_log(request: Request, work_id: str):
+    """Delete a work log entry (own entries only, or admin)"""
+    user = await get_current_user(request)
+    
+    work_log = await db.work_logs.find_one({
+        "work_id": work_id,
+        "group_id": user["group_id"]
+    })
+    
+    if not work_log:
+        raise HTTPException(status_code=404, detail="Work log not found")
+    
+    # Only allow deletion of own entries or by admin
+    is_admin = user["role"] in ["admin", "owner"]
+    is_owner = work_log["user_id"] == user["user_id"]
+    
+    if not is_admin and not is_owner:
+        raise HTTPException(status_code=403, detail="You can only delete your own work logs")
+    
+    await db.work_logs.delete_one({"work_id": work_id})
+    return {"ok": True, "message": "Work log deleted"}
+
+@api_router.get("/work-logs/summary/project/{project_id}")
+async def get_project_work_summary(request: Request, project_id: str):
+    """Get summary of work done on a project with payment breakdown per user"""
+    user = await get_current_user(request)
+    
+    # Verify project exists and belongs to group
+    project = await db.projects.find_one({
+        "project_id": project_id,
+        "group_id": user["group_id"]
+    })
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get all work logs for the project
+    logs = await db.work_logs.find({
+        "project_id": project_id,
+        "group_id": user["group_id"]
+    }, {"_id": 0}).to_list(1000)
+    
+    # Calculate totals
+    total_area = sum(log["area"] for log in logs)
+    total_hours = sum(log["hours_worked"] for log in logs)
+    total_payment = sum(log["total_payment"] for log in logs)
+    
+    # Group by user
+    user_totals = {}
+    for log in logs:
+        uid = log["user_id"]
+        if uid not in user_totals:
+            user_doc = await db.users.find_one({"user_id": uid}, {"name": 1, "_id": 0})
+            user_totals[uid] = {
+                "user_id": uid,
+                "user_name": user_doc["name"] if user_doc else "Unknown",
+                "total_area": 0,
+                "total_hours": 0,
+                "total_payment": 0,
+                "entries_count": 0
+            }
+        user_totals[uid]["total_area"] += log["area"]
+        user_totals[uid]["total_hours"] += log["hours_worked"]
+        user_totals[uid]["total_payment"] += log["total_payment"]
+        user_totals[uid]["entries_count"] += 1
+    
+    # Calculate percentage share based on hours
+    for uid, data in user_totals.items():
+        data["hours_percentage"] = (data["total_hours"] / total_hours * 100) if total_hours > 0 else 0
+        data["payment_share"] = (data["total_hours"] / total_hours * total_payment) if total_hours > 0 else 0
+    
+    return {
+        "project_id": project_id,
+        "project_name": project["name"],
+        "total_area": total_area,
+        "total_hours": total_hours,
+        "total_payment": total_payment,
+        "entries_count": len(logs),
+        "user_breakdown": list(user_totals.values())
+    }
+
+@api_router.get("/akkord/pricing")
+async def get_akkord_pricing(request: Request):
+    """Get the akkord pricing structure"""
+    await get_current_user(request)
+    
+    return {
+        "base_operations": [
+            {"id": "avtrekk", "name": "Avtrekk", "price": 18},
+            {"id": "skuring", "name": "Skuring", "price": 22},
+            {"id": "glatting", "name": "Glatting", "price": 26}
+        ],
+        "addons": [
+            {"id": "sikatop_x1", "name": "Sikatop x1", "price": 3},
+            {"id": "sikatop_x2", "name": "Sikatop x2", "price": 6},
+            {"id": "tykkelse_30_40", "name": "Tykkelse 30-40cm", "price": 3},
+            {"id": "tykkelse_40_50", "name": "Tykkelse 40-50cm", "price": 5},
+            {"id": "ashford", "name": "Ashford", "price": 10},
+            {"id": "plastikk", "name": "Plastikk", "price": 5}
+        ],
+        "currency": "NOK",
+        "unit": "kr/m²"
+    }
+
 # ============== Health Check ==============
 
 @api_router.get("/health")
