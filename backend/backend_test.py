@@ -529,11 +529,11 @@ class NordicForgeAPITester:
         """Test file upload functionality"""
         print("\n--- Testing File Upload ---")
         
-        # Create a simple test file content
+        # Create a simple test file content (use PDF which is allowed)
         test_file_content = b"Test receipt content for API testing"
         
-        # Test file upload endpoint
-        files = {'file': ('test_receipt.txt', test_file_content, 'text/plain')}
+        # Test file upload endpoint with allowed file type
+        files = {'file': ('test_receipt.pdf', test_file_content, 'application/pdf')}
         headers = {}  # Don't set Content-Type for multipart uploads
         
         try:
@@ -553,7 +553,7 @@ class NordicForgeAPITester:
                     response_data = response.json()
                     if (response_data.get('file_id') and 
                         response_data.get('file_url') and
-                        response_data.get('filename') == 'test_receipt.txt'):
+                        response_data.get('filename') == 'test_receipt.pdf'):
                         print("   ✓ File upload returned correct response data")
                         print(f"   File URL: {response_data.get('file_url')}")
                         return True, response_data
