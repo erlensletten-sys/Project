@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const ACCENT_COLOR_NAMES = {
+  black: { en: 'Black', nb: 'Svart' },
   green: { en: 'Green', nb: 'Grønn' },
   yellow: { en: 'Yellow', nb: 'Gul' },
   purple: { en: 'Purple', nb: 'Lilla' },
