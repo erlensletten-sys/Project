@@ -506,11 +506,17 @@ def is_email_configured():
     config = get_email_config()
     return bool(config["smtp_host"] and config["smtp_user"] and config["sender_email"])
 
-async def send_email_smtp(to_email: str, subject: str, html_content: str, text_content: str = None):
+async def send_email_smtp(to_email: str, subject: str, html_content: str, text_content: str = None, group_id: str = None):
     """Send email via SMTP"""
-    config = get_email_config()
+    # Get config from database if group_id provided, otherwise use environment
+    if group_id:
+        config = await get_effective_email_config(group_id)
+        configured = await is_email_configured_for_group(group_id)
+    else:
+        config = get_email_config()
+        configured = is_email_configured()
     
-    if not is_email_configured():
+    if not configured:
         logger.warning("SMTP not configured, skipping email")
         return False
     
@@ -518,7 +524,7 @@ async def send_email_smtp(to_email: str, subject: str, html_content: str, text_c
         # Create message
         message = MIMEMultipart("alternative")
         message["Subject"] = subject
-        message["From"] = f"{config['sender_name']} <{config['sender_email']}>"
+        message["From"] = f"{config.get('sender_name', 'NordicForge')} <{config.get('sender_email', '')}>"
         message["To"] = to_email
         
         # Add plain text version if provided
@@ -533,11 +539,11 @@ async def send_email_smtp(to_email: str, subject: str, html_content: str, text_c
         # Send via SMTP
         await aiosmtplib.send(
             message,
-            hostname=config["smtp_host"],
-            port=config["smtp_port"],
-            username=config["smtp_user"],
-            password=config["smtp_password"],
-            start_tls=config["smtp_use_tls"]
+            hostname=config.get("smtp_host", ""),
+            port=config.get("smtp_port", 587),
+            username=config.get("smtp_user", ""),
+            password=config.get("smtp_password", ""),
+            start_tls=config.get("smtp_use_tls", True)
         )
         
         logger.info(f"Email sent successfully to {to_email}")
