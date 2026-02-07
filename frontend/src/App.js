@@ -92,13 +92,15 @@ function App() {
   return (
     <div className="App">
       <Toaster data-testid="global-toaster" richColors position="top-right" />
-      <LanguageProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <AppRouter />
-          </AuthProvider>
-        </BrowserRouter>
-      </LanguageProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <AppRouter />
+            </AuthProvider>
+          </BrowserRouter>
+        </LanguageProvider>
+      </ThemeProvider>
     </div>
   );
 }
