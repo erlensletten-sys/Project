@@ -1,148 +1,154 @@
-# NordicForge - Business Management Platform PRD
+# NordicForge - Product Requirements Document
 
 ## Overview
-NordicForge is a multi-tenant business management platform combining features from Tripletex (Norwegian accounting) and Smartdok (construction/field management). Built for small to medium businesses, especially in construction and field services.
+NordicForge is a multi-tenant business management platform combining features from Tripletex (invoicing, payroll, expense management) and Smartdok (checklists, HSE documentation, project management).
 
-## Original Problem Statement
-Build a combination of Tripletex (invoicing, payroll, expense management) and Smartdok (checklists, HSE documentation, project management) into a single multi-tenant platform with separate Groups/Organizations, each with their own Admin.
+## Target Audience
+Small to medium-sized businesses in Norway and other Nordic countries.
 
-## User Personas
-1. **Organization Owner** - Creates the organization, full admin access
-2. **Admin** - Can manage users, approve expenses, process payroll, create form templates
-3. **Member** - Fill forms, submit expenses, view projects
+## Core Features
 
-## Core Requirements
-- Multi-tenant architecture with Groups/Organizations
-- JWT-based authentication (username/password)
-- Data isolation per organization
-- Norwegian business standards (NOK currency, 25% VAT)
-- Dark theme UI
+### 1. Authentication & Multi-tenancy
+- Username/password authentication
+- Multi-tenant architecture with isolated "Groups"
+- Role-based access control (Owner, Admin, Member)
 
-## What's Been Implemented (Jan 2026)
+### 2. Invoicing Module
+- Create, send, and track invoices
+- Invoice status management (Draft, Sent, Paid, Overdue)
+- Email notifications for invoice delivery
 
-### Authentication & Multi-tenancy
-- [x] User registration with organization creation
-- [x] JWT-based login with session cookies
-- [x] Role-based access (owner, admin, member)
-- [x] Group/organization data isolation
-- [x] User invitation system with temp passwords
+### 3. Payroll Module
+- Employee management
+- Payroll runs with history
+- Monthly payroll calculations
 
-### Invoicing (From Tripletex)
-- [x] Create invoices with line items
-- [x] Auto-calculate subtotal, VAT, total
-- [x] Invoice status management (draft, sent, paid, overdue)
-- [x] Invoice listing with search and filters
-- [x] Invoice detail view
-- [x] Send invoice via email (SendGrid integration)
+### 4. Expenses Module
+- Expense submission and approval workflow
+- Receipt upload functionality (PDF, PNG, JPG)
+- Category-based expense tracking
 
-### Payroll (From Tripletex)
-- [x] Employee management
-- [x] Salary tracking
-- [x] Department organization
-- [x] Monthly payroll calculations
-- [x] Payroll run history
-- [x] Payroll run status management (draft, processed, paid)
-- [x] Employee snapshot per payroll run
+### 5. Projects Module
+- Project creation and management
+- Task tracking
+- Project budgets and timelines
 
-### Expense Management (From Tripletex)
-- [x] Submit expenses with categories
-- [x] Expense approval workflow (pending, approved, rejected)
-- [x] Admin approval interface
-- [x] Receipt file upload (PDF, PNG, JPG up to 10MB)
+### 6. HSE Documents Module
+- Health, Safety & Environment documentation
+- Document upload and expiry tracking
+- Document types: Policy, Procedure, Form, Report, Certificate
 
-### Projects (From Smartdok)
-- [x] Project creation with budget and timeline
-- [x] Task management within projects
-- [x] Task status tracking (todo, in_progress, done)
-- [x] Priority levels (low, medium, high)
+### 7. Form Builder (Checklists)
+- Admin-created form templates
+- Dynamic field types (text, number, checkbox, dropdown, date)
+- Form submissions linked to projects
+- PDF export of submissions
 
-### **Form Builder (From Smartdok - Enhanced)** ✨ NEW
-- [x] **Admin form template creation** with multiple field types:
-  - Short Text
-  - Long Text (textarea)
-  - Number
-  - Checkbox
-  - Dropdown (select with custom options)
-  - Date
-- [x] **Field configuration**: required/optional, placeholders
-- [x] **Form categories**: general, safety, quality, inspection
-- [x] **User form submission** with project linking
-- [x] **Submissions list** with filtering
-- [x] **PDF export** of completed form submissions
-- [x] **Admin-only form management** (create/delete templates)
+### 8. Settings & Configuration
+- Organization management
+- Team member invitation
+- **SMTP Configuration** - Admins can configure email settings via UI
+- **Language Selection** - English and Norwegian (Norsk) support
 
-### HSE Documents (From Smartdok)
-- [x] Document types (policy, procedure, form, report, certificate)
-- [x] Expiry date tracking with alerts
-- [x] Content and file URL support
-- [x] Document file upload (PDF, DOC, DOCX, XLS, XLSX, PNG, JPG)
+## Technical Architecture
 
-### Dashboard
-- [x] Revenue and pending invoice stats
-- [x] Monthly payroll overview
-- [x] Active projects count
-- [x] Pending expense approvals
-- [x] HSE expiry alerts
-- [x] Quick action cards
+### Backend (FastAPI + MongoDB)
+- Python FastAPI server
+- MongoDB for data persistence
+- JWT-based session management (cookies)
+- SMTP integration for email delivery
 
-### UI/UX
-- [x] Dark theme across all pages
-- [x] Nordic Industrial design theme
-- [x] Space Grotesk typography
-- [x] Safety Orange accent (#FF4500)
-- [x] Responsive sidebar navigation
-- [x] Construction background imagery
+### Frontend (React + TailwindCSS)
+- React 18 with React Router
+- TailwindCSS + Shadcn/UI components
+- Context-based state management
+- i18n support with custom language context
 
-## Tech Stack
-- **Frontend**: React 19, Tailwind CSS, shadcn/ui, Lucide icons
-- **Backend**: FastAPI, Python 3
-- **Database**: MongoDB with Motor async driver
-- **Auth**: JWT with httpOnly cookies
-- **Email**: SendGrid (optional)
-- **File Storage**: Local filesystem with secure access
-- **PDF Generation**: ReportLab
+### Database Schema
+- `groups`: Organization data
+- `users`: User accounts with role and group association
+- `invoices`: Invoice records
+- `employees`: Employee records
+- `payroll_runs`: Payroll history
+- `expenses`: Expense records
+- `projects`: Project data
+- `hse_documents`: HSE documentation
+- `form_templates`: Form builder templates
+- `form_submissions`: Completed form entries
+- `email_configs`: SMTP configuration per group
+- `files`: Uploaded file metadata
 
-## Form Builder API Endpoints
-- `GET /api/forms` - List form templates
-- `POST /api/forms` - Create form template (admin only)
-- `GET /api/forms/{id}` - Get form template
-- `DELETE /api/forms/{id}` - Delete form template (admin only)
-- `GET /api/forms/{id}/submissions` - List form submissions
-- `POST /api/forms/{id}/submissions` - Submit form response
-- `GET /api/submissions` - List all submissions
-- `GET /api/submissions/{id}` - Get submission details
-- `GET /api/submissions/{id}/pdf` - Download submission as PDF
+## Implemented Features (as of December 2025)
 
-## Prioritized Backlog
+### Completed
+- [x] User authentication (Register/Login)
+- [x] Multi-tenant group management
+- [x] Dashboard with overview metrics
+- [x] Invoicing module (CRUD, status management)
+- [x] Payroll module with run history
+- [x] Expenses with receipt upload
+- [x] Projects management
+- [x] HSE Documents with file upload
+- [x] Form Builder with PDF export
+- [x] Dark theme (default)
+- [x] SMTP configuration via Settings UI
+- [x] Language selection (English/Norwegian)
+- [x] All pages translated (i18n)
 
-### P0 (Critical)
-- All core features implemented ✅
+### Backlog
+- [ ] Real-time invoice email delivery (requires SMTP credentials)
+- [ ] Password reset functionality
+- [ ] User profile editing
+- [ ] Invoice PDF generation
+- [ ] Expense approval notifications
+- [ ] Dashboard analytics/charts
+- [ ] Mobile-responsive improvements
 
-### P1 (High Priority) - All Done ✅
-- [x] Payroll run history
-- [x] File upload for receipts/documents
-- [x] Email notifications for invoice delivery
-- [x] Dark theme
-- [x] Form builder with PDF export
+## API Endpoints
 
-### P2 (Medium Priority)
-- [ ] Recurring invoices
-- [ ] PDF invoice export/download
-- [ ] Report generation (monthly/quarterly)
-- [ ] Time tracking integration with payroll
-- [ ] Signature field for forms
+### Authentication
+- `POST /api/auth/register` - Create new organization and user
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/me` - Get current user
 
-### P3 (Future)
-- [ ] Mobile-optimized field view
-- [ ] Expense receipt OCR
-- [ ] Integration with Norwegian accounting standards
-- [ ] Altinn integration
-- [ ] Bank integration
-- [ ] Multi-language support (NO/EN)
-- [ ] Mobile app
+### Settings
+- `GET /api/settings/email` - Get SMTP configuration status
+- `PUT /api/settings/email` - Save SMTP configuration
+- `POST /api/settings/email/test` - Send test email
 
-## Next Steps
-1. Add signature field to form builder
-2. PDF invoice export/download
-3. Recurring invoice functionality
-4. Time tracking integration
+### Core Modules
+- `/api/invoices` - Invoice management
+- `/api/employees` - Employee management
+- `/api/payroll-runs` - Payroll operations
+- `/api/expenses` - Expense management
+- `/api/projects` - Project management
+- `/api/hse-documents` - HSE documentation
+- `/api/forms/templates` - Form builder templates
+- `/api/forms/submissions` - Form submissions
+
+## Environment Variables
+
+### Backend (.env)
+```
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=nordicforge
+CORS_ORIGINS=*
+```
+
+### Frontend (.env)
+```
+REACT_APP_BACKEND_URL=https://hse-invoice-hub.preview.emergentagent.com
+```
+
+## Testing
+- Backend: pytest with async support
+- Frontend: Playwright for UI testing
+- Test coverage: Authentication, Settings, i18n, SMTP configuration
+
+## Design Guidelines
+- Dark theme with orange accent color
+- Shadcn/UI component library
+- Inter font family
+- Consistent 8px spacing grid
+- Status badges for visual state indication
