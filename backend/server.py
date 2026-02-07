@@ -2192,59 +2192,77 @@ async def send_invoice(request: Request, invoice_id: str, send_request: SendInvo
 
 @api_router.get("/settings/email")
 async def get_email_settings(request: Request):
-    """Get email configuration status (admin only)"""
+    """Get email configuration status (admin only) - shows global SMTP + group sender name"""
     user = await require_admin(request)
     
-    # Check database first, then environment
-    config = await get_effective_email_config(user["group_id"])
-    configured = await is_email_configured_for_group(user["group_id"])
+    # Get global config
+    global_config = await get_global_email_config()
+    configured = await is_email_configured_global()
+    
+    # Get group-specific sender name
+    group_sender_name = await get_group_sender_name(user["group_id"])
     
     return {
         "configured": configured,
-        "smtp_host": config.get("smtp_host", ""),
-        "smtp_port": config.get("smtp_port", 587),
-        "smtp_user": config.get("smtp_user", "")[:3] + "***" if config.get("smtp_user") else "",
-        "smtp_use_tls": config.get("smtp_use_tls", True),
-        "sender_email": config.get("sender_email", ""),
-        "sender_name": config.get("sender_name", "ProjectDash")
+        "smtp_host": global_config.get("smtp_host", ""),
+        "smtp_port": global_config.get("smtp_port", 587),
+        "smtp_user": global_config.get("smtp_user", "")[:3] + "***" if global_config.get("smtp_user") else "",
+        "smtp_use_tls": global_config.get("smtp_use_tls", True),
+        "sender_email": global_config.get("sender_email", ""),
+        "sender_name": group_sender_name or global_config.get("sender_name", "ProjectDash"),
+        "is_global_config": True  # Flag to indicate this is global SMTP
     }
 
 @api_router.put("/settings/email")
 async def update_email_settings(request: Request, settings: EmailSettingsUpdate):
-    """Update email configuration for the organization (admin only)"""
+    """Update global email configuration (admin only) - sets SMTP for all groups"""
     user = await require_admin(request)
     
-    # Build update document
+    # Build update document for GLOBAL config
     update_data = {
-        "group_id": user["group_id"],
+        "group_id": "__global__",  # Special key for global config
         "smtp_host": settings.smtp_host,
         "smtp_port": settings.smtp_port,
         "smtp_user": settings.smtp_user,
         "smtp_use_tls": settings.smtp_use_tls,
         "sender_email": settings.sender_email,
         "sender_name": settings.sender_name,
-        "updated_at": datetime.now(timezone.utc)
+        "updated_at": datetime.now(timezone.utc),
+        "updated_by": user["user_id"]
     }
     
     # Only update password if provided
     if settings.smtp_password:
         update_data["smtp_password"] = settings.smtp_password
     
-    # Upsert the config
+    # Upsert the global config
     await db.email_configs.update_one(
-        {"group_id": user["group_id"]},
+        {"group_id": "__global__"},
         {"$set": update_data},
         upsert=True
     )
     
-    return {"ok": True, "message": "Email settings saved successfully"}
+    return {"ok": True, "message": "Global email settings saved successfully"}
+
+@api_router.put("/settings/email/sender-name")
+async def update_group_sender_name(request: Request, settings: GroupEmailSettingsUpdate):
+    """Update sender name for the current group (admin only)"""
+    user = await require_admin(request)
+    
+    # Update the group's sender_name
+    await db.groups.update_one(
+        {"group_id": user["group_id"]},
+        {"$set": {"sender_name": settings.sender_name, "updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    return {"ok": True, "message": "Sender name updated successfully"}
 
 @api_router.post("/settings/email/test")
 async def test_email_settings(request: Request, test_email: str):
     """Send a test email to verify SMTP configuration"""
     user = await require_admin(request)
     
-    configured = await is_email_configured_for_group(user["group_id"])
+    configured = await is_email_configured_global()
     if not configured:
         raise HTTPException(status_code=400, detail="SMTP is not configured. Please configure SMTP settings first.")
     
