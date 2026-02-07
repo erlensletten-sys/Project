@@ -155,12 +155,12 @@ export default function RegisterPage() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="h-11"
+                    className="h-11 bg-slate-700 border-slate-600"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-slate-200">Password</Label>
                   <Input
                     id="password"
                     name="password"
@@ -170,12 +170,12 @@ export default function RegisterPage() {
                     value={formData.password}
                     onChange={handleChange}
                     required
-                    className="h-11"
+                    className="h-11 bg-slate-700 border-slate-600"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword" className="text-slate-200">Confirm Password</Label>
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
@@ -185,7 +185,7 @@ export default function RegisterPage() {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     required
-                    className="h-11"
+                    className="h-11 bg-slate-700 border-slate-600"
                   />
                 </div>
 
@@ -207,7 +207,7 @@ export default function RegisterPage() {
               </form>
 
               <div className="mt-6 text-center">
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-400">
                   Already have an account?{' '}
                   <Link 
                     to="/login" 
