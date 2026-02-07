@@ -536,13 +536,15 @@ async def save_upload_file(file: UploadFile, group_id: str) -> dict:
 
 # ============== Email Helpers ==============
 
-async def get_email_config_from_db(group_id: str):
-    """Get email configuration from database for a group"""
-    config = await db.email_configs.find_one({"group_id": group_id}, {"_id": 0})
-    return config
-
-def get_email_config():
-    """Get email configuration from environment (fallback)"""
+# Global email configuration from environment or database (set by system admin)
+async def get_global_email_config():
+    """Get global email configuration from database or environment"""
+    # First check if global config exists in database
+    global_config = await db.email_configs.find_one({"group_id": "__global__"}, {"_id": 0})
+    if global_config and global_config.get('smtp_host'):
+        return global_config
+    
+    # Fallback to environment variables
     return {
         "smtp_host": os.environ.get('SMTP_HOST', ''),
         "smtp_port": int(os.environ.get('SMTP_PORT', 587)),
@@ -553,25 +555,47 @@ def get_email_config():
         "sender_name": os.environ.get('SENDER_NAME', 'ProjectDash')
     }
 
+async def get_group_sender_name(group_id: str):
+    """Get the custom sender name for a group, if any"""
+    group = await db.groups.find_one({"group_id": group_id}, {"_id": 0, "sender_name": 1})
+    return group.get("sender_name") if group else None
+
 async def get_effective_email_config(group_id: str):
-    """Get email configuration, checking database first then environment"""
-    db_config = await get_email_config_from_db(group_id)
-    if db_config and db_config.get('smtp_host'):
-        return db_config
-    return get_email_config()
+    """Get email configuration - global SMTP with per-group sender name override"""
+    # Get global SMTP configuration
+    config = await get_global_email_config()
+    
+    # Override sender_name with group-specific value if set
+    group_sender_name = await get_group_sender_name(group_id)
+    if group_sender_name:
+        config = dict(config)  # Make a copy to avoid modifying original
+        config["sender_name"] = group_sender_name
+    
+    return config
 
-def is_email_configured_env():
-    """Check if email is properly configured from env"""
-    config = get_email_config()
-    return bool(config["smtp_host"] and config["smtp_user"] and config["sender_email"])
+def get_email_config():
+    """Get email configuration from environment (fallback - legacy support)"""
+    return {
+        "smtp_host": os.environ.get('SMTP_HOST', ''),
+        "smtp_port": int(os.environ.get('SMTP_PORT', 587)),
+        "smtp_user": os.environ.get('SMTP_USER', ''),
+        "smtp_password": os.environ.get('SMTP_PASSWORD', ''),
+        "smtp_use_tls": os.environ.get('SMTP_USE_TLS', 'true').lower() == 'true',
+        "sender_email": os.environ.get('SENDER_EMAIL', ''),
+        "sender_name": os.environ.get('SENDER_NAME', 'ProjectDash')
+    }
 
-async def is_email_configured_for_group(group_id: str):
-    """Check if email is properly configured for a group"""
-    config = await get_effective_email_config(group_id)
+async def is_email_configured_global():
+    """Check if global email is properly configured"""
+    config = await get_global_email_config()
     return bool(config.get("smtp_host") and config.get("smtp_user") and config.get("sender_email"))
 
+async def is_email_configured_for_group(group_id: str):
+    """Check if email is properly configured (uses global config)"""
+    return await is_email_configured_global()
+
 def is_email_configured():
-    """Check if email is properly configured (environment only)"""
+    """Check if email is properly configured (environment only - legacy)"""
     config = get_email_config()
     return bool(config["smtp_host"] and config["smtp_user"] and config["sender_email"])
 
