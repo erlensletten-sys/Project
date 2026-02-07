@@ -1047,7 +1047,7 @@ export default function SettingsPage() {
                     {/* Role badge */}
                     <span className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${roleColors[member.role] || roleColors.employee}`}>
                       {roleIcons[member.role]}
-                      {t(`settings.role${member.role.charAt(0).toUpperCase() + member.role.slice(1)}`)}
+                      {t(roleTranslationKeys[member.role] || 'settings.roleEmployee')}
                     </span>
                     
                     {/* Admin actions dropdown */}
