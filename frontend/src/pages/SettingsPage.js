@@ -231,6 +231,68 @@ export default function SettingsPage() {
         <p className="text-slate-400 mt-1">{t('settings.subtitle')}</p>
       </div>
 
+      {/* Theme */}
+      <Card className="card">
+        <CardHeader>
+          <CardTitle className="heading text-lg flex items-center gap-2">
+            <Palette size={20} />
+            {t('settings.theme')}
+          </CardTitle>
+          <CardDescription className="text-slate-400">{t('settings.themeSubtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Mode Toggle */}
+          <div className="space-y-3">
+            <Label>{t('settings.mode')}</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={mode === 'dark' ? 'default' : 'outline'}
+                onClick={() => setMode('dark')}
+                className={mode === 'dark' ? 'bg-accent' : 'border-slate-700'}
+              >
+                <Moon size={16} className="mr-2" />
+                {t('settings.darkMode')}
+              </Button>
+              <Button
+                variant={mode === 'light' ? 'default' : 'outline'}
+                onClick={() => setMode('light')}
+                className={mode === 'light' ? 'bg-accent' : 'border-slate-700'}
+              >
+                <Sun size={16} className="mr-2" />
+                {t('settings.lightMode')}
+              </Button>
+            </div>
+          </div>
+
+          {/* Accent Color */}
+          <div className="space-y-3">
+            <Label>{t('settings.accentColor')}</Label>
+            <div className="flex flex-wrap gap-3">
+              {availableColors.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => setAccentColor(color)}
+                  className={`w-12 h-12 rounded-lg transition-all ${
+                    accentColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110' : 'hover:scale-105'
+                  }`}
+                  style={{
+                    backgroundColor: color === 'green' ? '#22c55e' :
+                      color === 'yellow' ? '#eab308' :
+                      color === 'purple' ? '#a855f7' :
+                      color === 'blue' ? '#3b82f6' :
+                      '#f97316'
+                  }}
+                  title={ACCENT_COLOR_NAMES[color]?.[language] || color}
+                />
+              ))}
+            </div>
+            <p className="text-sm text-slate-500">
+              {t('settings.currentColor')}: {ACCENT_COLOR_NAMES[accentColor]?.[language] || accentColor}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Language */}
       <Card className="card">
         <CardHeader>
