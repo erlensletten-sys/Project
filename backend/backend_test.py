@@ -516,7 +516,7 @@ class NordicForgeAPITester:
                 method,
                 endpoint,
                 401,
-                use_cookies=False
+                use_session=False  # Don't use authenticated session for this test
             )
             if not success:
                 all_protected = False
