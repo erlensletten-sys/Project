@@ -2564,7 +2564,7 @@ async def send_invoice(request: Request, invoice_id: str, send_request: SendInvo
     group_name = group_doc.get("name", "ProjectDash") if group_doc else "ProjectDash"
     
     # Queue email in background
-    background_tasks.add_task(send_invoice_email, invoice, recipient_email, group_name)
+    background_tasks.add_task(send_invoice_email, invoice, recipient_email, group_name, user["group_id"])
     
     # Update invoice status to sent
     await db.invoices.update_one(
