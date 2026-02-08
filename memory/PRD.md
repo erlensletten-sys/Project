@@ -21,7 +21,8 @@ Small to medium-sized businesses in Norway and Nordic countries.
   - **HR**: Manage employees, view payroll, approve expenses
   - **Member**: Create invoices, manage projects, basic access
   - **Employee**: View projects, fill checklists, add expenses, log work
-- **User Operations:** Create, invite, edit roles, deactivate/reactivate
+- **User Operations:** Create, invite (with email), edit roles, deactivate/reactivate
+- **Payroll Sync:** Creating/inviting a user auto-creates an employee record for payroll
 
 ### 3. Dashboard Analytics
 - Admin/Owner/HR: Financial margins, revenue vs costs, top producers
@@ -36,6 +37,7 @@ Small to medium-sized businesses in Norway and Nordic countries.
 - Full CRUD for all modules
 - Form Builder with dynamic fields and PDF export
 - HSE document management with file uploads
+- Invoice email sending (via SMTP)
 
 ### 6. Settings & Configuration
 - Global SMTP, per-group sender name
@@ -52,9 +54,10 @@ Small to medium-sized businesses in Norway and Nordic countries.
 ## API Endpoints
 - Auth: /api/auth/register, login, logout, me, forgot-password, reset-password
 - Dashboard: /api/analytics/dashboard
-- User Management: /api/group/users (CRUD), /api/group/invite
-- Invoices: /api/invoices (restricted to member+)
+- User Management: /api/group/users (CRUD), /api/group/invite (sends email)
+- Invoices: /api/invoices (restricted to member+), /api/invoices/{id}/send (sends email)
 - Payroll: /api/payroll/runs (restricted to HR+)
+- Employees: /api/employees (restricted to HR+)
 - Settings: /api/settings/group, /api/settings/email
 - Work Logs: /api/work-logs
 - Forms: /api/forms, /api/forms/{id}/submissions
@@ -64,7 +67,9 @@ Small to medium-sized businesses in Norway and Nordic countries.
 - [x] User authentication (Register/Login/Password Reset)
 - [x] Multi-tenant group management
 - [x] Dashboard with role-based analytics
-- [x] Invoicing, Payroll, Expenses modules
+- [x] Invoicing module with email sending
+- [x] Payroll module
+- [x] Expenses with receipt upload
 - [x] Projects management with tasks
 - [x] HSE Documents with file upload
 - [x] Form Builder with PDF export
@@ -74,8 +79,11 @@ Small to medium-sized businesses in Norway and Nordic countries.
 - [x] Work Log (Akkord + Hourly + per-employee hours)
 - [x] User Management with all roles
 - [x] **Role-based permissions (frontend + backend)** - Feb 2026
-- [x] **Form fillability fix (Select component)** - Feb 2026
+- [x] **Form fillability fix** - Feb 2026
 - [x] **Form-project association fix** - Feb 2026
+- [x] **User creation syncs to payroll employees** - Feb 2026
+- [x] **Invitation emails with credentials** - Feb 2026
+- [x] **Invoice sending via SMTP fixed** - Feb 2026
 
 ## In Progress
 - [ ] Professional Login/Register page redesign (V2 files created)
@@ -83,7 +91,6 @@ Small to medium-sized businesses in Norway and Nordic countries.
 ## Backlog
 - [ ] HSE PDF Upload and viewing
 - [ ] HTML Email Templates (pretty design)
-- [ ] User creation error investigation
 - [ ] Code cleanup (remove old auth files)
 - [ ] Invoice PDF generation
 - [ ] Mobile-responsive improvements
