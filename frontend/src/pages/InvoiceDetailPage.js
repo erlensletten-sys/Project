@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Send, CheckCircle, Printer, Mail, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle, Printer, Mail, Loader2, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function InvoiceDetailPage() {
