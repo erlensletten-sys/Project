@@ -171,7 +171,7 @@ export function ResetPasswordPage() {
                   <Label htmlFor="confirm" className="text-sm font-medium text-slate-300">Confirm password</Label>
                   <Input id="confirm" data-testid="reset-confirm-password-input" type="password" placeholder="Repeat password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="h-11 bg-slate-900/60 border-slate-700/60 text-white placeholder:text-slate-500 focus:border-orange-500/60 focus:ring-1 focus:ring-orange-500/30 rounded-lg" />
                 </div>
-                <Button type="submit" data-testid="reset-submit-btn" className="h-11 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all duration-200" disabled={loading}>
+                <Button type="submit" data-testid="reset-submit-btn" className="h-11 w-full text-white font-semibold rounded-lg transition-all duration-200" style={{ backgroundColor: '#f97316' }} onMouseEnter={(e) => e.target.style.backgroundColor = '#ea580c'} onMouseLeave={(e) => e.target.style.backgroundColor = '#f97316'} disabled={loading}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Lock size={16} className="mr-2" /> Reset password</>}
                 </Button>
               </form>
