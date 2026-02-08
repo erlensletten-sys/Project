@@ -138,7 +138,7 @@ export default function RegisterPage() {
               <Input id="password" name="password" data-testid="register-password-input" type="password" placeholder="Min. 8 characters" value={formData.password} onChange={handleChange} required minLength={8} className="h-11 bg-slate-900/60 border-slate-700/60 text-white placeholder:text-slate-500 focus:border-orange-500/60 focus:ring-1 focus:ring-orange-500/30 rounded-lg" />
             </div>
 
-            <Button type="submit" disabled={loading} data-testid="register-submit-btn" className="h-11 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all duration-200 mt-1">
+            <Button type="submit" disabled={loading} data-testid="register-submit-btn" className="h-11 w-full text-white font-semibold rounded-lg transition-all duration-200 mt-1" style={{ backgroundColor: '#f97316' }} onMouseEnter={(e) => e.target.style.backgroundColor = '#ea580c'} onMouseLeave={(e) => e.target.style.backgroundColor = '#f97316'}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Create organization <ChevronRight className="ml-1.5 h-4 w-4" /></>}
             </Button>
 
