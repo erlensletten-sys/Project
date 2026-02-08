@@ -323,15 +323,17 @@ export default function WorkLogPage() {
               <div className="space-y-2">
                 <Label>{t('workLog.workType')}</Label>
                 <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={newLog.work_type === 'akkord' ? 'default' : 'outline'}
-                    onClick={() => setNewLog({...newLog, work_type: 'akkord'})}
-                    className={newLog.work_type === 'akkord' ? 'bg-orange-500 hover:bg-orange-600' : 'border-slate-700'}
-                  >
-                    <Square size={16} className="mr-2" />
-                    {t('workLog.pieceRate')}
-                  </Button>
+                  {groupSettings?.akkord_enabled !== false && (
+                    <Button
+                      type="button"
+                      variant={newLog.work_type === 'akkord' ? 'default' : 'outline'}
+                      onClick={() => setNewLog({...newLog, work_type: 'akkord'})}
+                      className={newLog.work_type === 'akkord' ? 'bg-orange-500 hover:bg-orange-600' : 'border-slate-700'}
+                    >
+                      <Square size={16} className="mr-2" />
+                      {t('workLog.pieceRate')}
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant={newLog.work_type === 'hourly' ? 'default' : 'outline'}
