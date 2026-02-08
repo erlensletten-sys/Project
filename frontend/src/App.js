@@ -26,7 +26,7 @@ import WorkLogPage from "@/pages/WorkLogPage";
 // Layout
 import Layout from "@/components/Layout";
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
   
   if (loading) {
@@ -39,6 +39,10 @@ function ProtectedRoute({ children }) {
   
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
   }
   
   return <Layout>{children}</Layout>;
