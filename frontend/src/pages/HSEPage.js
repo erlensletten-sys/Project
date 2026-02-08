@@ -378,14 +378,26 @@ export default function HSEPage() {
                   )}
                 </div>
                 {doc.file_url && (
-                  <a 
-                    href={doc.file_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-orange-400 hover:text-orange-300"
-                  >
-                    {t('hse.viewDocument')} <ExternalLink size={14} />
-                  </a>
+                  <div className="flex items-center gap-2">
+                    {doc.file_url.toLowerCase().endsWith('.pdf') && (
+                      <button
+                        onClick={() => setViewingPdf(viewingPdf?.document_id === doc.document_id ? null : doc)}
+                        className="inline-flex items-center gap-1 text-sm text-orange-400 hover:text-orange-300 transition-colors"
+                        data-testid={`view-pdf-${doc.document_id}`}
+                      >
+                        <Eye size={14} />
+                        {viewingPdf?.document_id === doc.document_id ? t('hse.hidePdf') || 'Hide PDF' : t('hse.viewPdf') || 'View PDF'}
+                      </button>
+                    )}
+                    <a 
+                      href={doc.file_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-300"
+                    >
+                      {t('hse.viewDocument')} <ExternalLink size={14} />
+                    </a>
+                  </div>
                 )}
               </CardContent>
             </Card>
