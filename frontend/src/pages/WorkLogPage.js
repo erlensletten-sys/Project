@@ -96,6 +96,13 @@ export default function WorkLogPage() {
       setGroupSettings(settingsData);
       setEmployees(employeesData);
       
+      // Set default work type based on akkord availability
+      if (settingsData?.akkord_enabled === false) {
+        setNewLog(prev => ({ ...prev, work_type: 'hourly' }));
+      } else {
+        setNewLog(prev => ({ ...prev, work_type: 'akkord' }));
+      }
+      
       if (isAdmin) {
         const allLogsData = await getWorkLogs();
         setAllLogs(allLogsData);
