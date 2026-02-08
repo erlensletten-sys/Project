@@ -1493,7 +1493,7 @@ async def create_invoice(request: Request, invoice: InvoiceCreate):
 @api_router.get("/invoices/{invoice_id}", response_model=InvoiceResponse)
 async def get_invoice(request: Request, invoice_id: str):
     """Get a specific invoice"""
-    user = await require_auth(request)
+    user = await require_member_or_above(request)
     
     invoice = await db.invoices.find_one(
         {"invoice_id": invoice_id, "group_id": user["group_id"]},
