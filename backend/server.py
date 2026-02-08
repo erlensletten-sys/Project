@@ -2632,6 +2632,217 @@ async def get_group_employees(request: Request):
     
     return users
 
+# ============== Dashboard Analytics ==============
+
+@api_router.get("/analytics/dashboard")
+async def get_dashboard_analytics(request: Request, period: str = "month"):
+    """Get dashboard analytics - different data for employees vs admins/HR"""
+    user = await get_current_user(request)
+    
+    # Determine date range
+    now = datetime.now(timezone.utc)
+    if period == "week":
+        start_date = now - timedelta(days=7)
+    elif period == "year":
+        start_date = now - timedelta(days=365)
+    else:  # month
+        start_date = now - timedelta(days=30)
+    
+    is_admin = user["role"] in ["admin", "owner", "hr"]
+    
+    if is_admin:
+        # Admin/Owner/HR View - Full analytics with margins
+        return await get_admin_analytics(user["group_id"], start_date, now)
+    else:
+        # Employee View - Personal production stats
+        return await get_employee_analytics(user["user_id"], user["group_id"], start_date, now)
+
+async def get_employee_analytics(user_id: str, group_id: str, start_date: datetime, end_date: datetime):
+    """Get analytics for an employee - their production and earnings"""
+    
+    # Get all work logs where this user participated
+    work_logs = await db.work_logs.find({
+        "group_id": group_id,
+        "date": {"$gte": start_date, "$lte": end_date},
+        "$or": [
+            {"user_id": user_id},
+            {"workers.user_id": user_id}
+        ]
+    }, {"_id": 0}).to_list(1000)
+    
+    # Calculate user's earnings
+    total_earnings = 0
+    total_hours = 0
+    total_area = 0
+    job_count = len(work_logs)
+    earnings_history = []
+    
+    for log in work_logs:
+        # Check if user is in workers list
+        user_payment = 0
+        user_hours = 0
+        
+        for worker in log.get("workers", []):
+            if worker["user_id"] == user_id:
+                user_payment = worker.get("payment", 0)
+                user_hours = worker.get("hours", 0)
+                break
+        
+        # If not in workers list but is creator
+        if user_payment == 0 and log.get("user_id") == user_id:
+            user_payment = log.get("total_payment", 0)
+            user_hours = log.get("total_hours", 0)
+        
+        total_earnings += user_payment
+        total_hours += user_hours
+        if log.get("work_type") == "akkord":
+            total_area += log.get("area", 0)
+        
+        earnings_history.append({
+            "date": log["date"].isoformat() if isinstance(log["date"], datetime) else log["date"],
+            "amount": user_payment,
+            "work_type": log.get("work_type", "akkord")
+        })
+    
+    # Calculate averages
+    avg_per_job = total_earnings / job_count if job_count > 0 else 0
+    avg_per_hour = total_earnings / total_hours if total_hours > 0 else 0
+    
+    # Get all-time earnings for median calculation
+    all_time_logs = await db.work_logs.find({
+        "group_id": group_id,
+        "$or": [
+            {"user_id": user_id},
+            {"workers.user_id": user_id}
+        ]
+    }, {"_id": 0, "workers": 1, "user_id": 1, "total_payment": 1}).to_list(5000)
+    
+    all_payments = []
+    for log in all_time_logs:
+        for worker in log.get("workers", []):
+            if worker["user_id"] == user_id:
+                all_payments.append(worker.get("payment", 0))
+                break
+        else:
+            if log.get("user_id") == user_id:
+                all_payments.append(log.get("total_payment", 0))
+    
+    median_income = sorted(all_payments)[len(all_payments)//2] if all_payments else 0
+    
+    return {
+        "type": "employee",
+        "period_earnings": round(total_earnings, 2),
+        "period_hours": round(total_hours, 2),
+        "period_area": round(total_area, 2),
+        "job_count": job_count,
+        "avg_per_job": round(avg_per_job, 2),
+        "avg_per_hour": round(avg_per_hour, 2),
+        "median_income": round(median_income, 2),
+        "earnings_history": sorted(earnings_history, key=lambda x: x["date"])[-30:]  # Last 30 entries
+    }
+
+async def get_admin_analytics(group_id: str, start_date: datetime, end_date: datetime):
+    """Get analytics for admins/owners/HR - margins and company overview"""
+    
+    # Get all work logs for the period
+    work_logs = await db.work_logs.find({
+        "group_id": group_id,
+        "date": {"$gte": start_date, "$lte": end_date}
+    }, {"_id": 0}).to_list(5000)
+    
+    # Get all expenses for the period
+    expenses = await db.expenses.find({
+        "group_id": group_id,
+        "date": {"$gte": start_date, "$lte": end_date}
+    }, {"_id": 0, "amount": 1, "status": 1}).to_list(5000)
+    
+    # Get all invoices for revenue
+    invoices = await db.invoices.find({
+        "group_id": group_id,
+        "created_at": {"$gte": start_date, "$lte": end_date}
+    }, {"_id": 0, "total": 1, "status": 1}).to_list(5000)
+    
+    # Calculate totals
+    total_labor_cost = sum(log.get("total_payment", 0) for log in work_logs)
+    total_expenses = sum(exp.get("amount", 0) for exp in expenses if exp.get("status") == "approved")
+    total_revenue = sum(inv.get("total", 0) for inv in invoices if inv.get("status") == "paid")
+    pending_revenue = sum(inv.get("total", 0) for inv in invoices if inv.get("status") in ["sent", "draft"])
+    
+    # Calculate margins
+    total_costs = total_labor_cost + total_expenses
+    gross_margin = total_revenue - total_costs
+    margin_percentage = (gross_margin / total_revenue * 100) if total_revenue > 0 else 0
+    
+    # Get employee production rankings
+    employee_stats = {}
+    for log in work_logs:
+        for worker in log.get("workers", []):
+            uid = worker["user_id"]
+            if uid not in employee_stats:
+                employee_stats[uid] = {
+                    "user_id": uid,
+                    "user_name": worker.get("user_name", "Unknown"),
+                    "total_hours": 0,
+                    "total_earnings": 0,
+                    "job_count": 0
+                }
+            employee_stats[uid]["total_hours"] += worker.get("hours", 0)
+            employee_stats[uid]["total_earnings"] += worker.get("payment", 0)
+            employee_stats[uid]["job_count"] += 1
+    
+    # Sort employees by earnings
+    top_producers = sorted(
+        employee_stats.values(),
+        key=lambda x: x["total_earnings"],
+        reverse=True
+    )[:10]
+    
+    # Calculate trends (daily totals for chart)
+    daily_revenue = {}
+    daily_costs = {}
+    
+    for inv in invoices:
+        if inv.get("status") == "paid":
+            date_key = inv.get("created_at", start_date)
+            if isinstance(date_key, datetime):
+                date_key = date_key.strftime("%Y-%m-%d")
+            daily_revenue[date_key] = daily_revenue.get(date_key, 0) + inv.get("total", 0)
+    
+    for log in work_logs:
+        date_key = log.get("date", start_date)
+        if isinstance(date_key, datetime):
+            date_key = date_key.strftime("%Y-%m-%d")
+        daily_costs[date_key] = daily_costs.get(date_key, 0) + log.get("total_payment", 0)
+    
+    return {
+        "type": "admin",
+        "revenue": {
+            "total": round(total_revenue, 2),
+            "pending": round(pending_revenue, 2),
+            "is_positive": total_revenue > 0
+        },
+        "costs": {
+            "labor": round(total_labor_cost, 2),
+            "expenses": round(total_expenses, 2),
+            "total": round(total_costs, 2)
+        },
+        "margin": {
+            "gross": round(gross_margin, 2),
+            "percentage": round(margin_percentage, 2),
+            "is_positive": gross_margin >= 0
+        },
+        "work_stats": {
+            "total_jobs": len(work_logs),
+            "total_hours": round(sum(log.get("total_hours", 0) for log in work_logs), 2),
+            "total_area": round(sum(log.get("area", 0) for log in work_logs), 2)
+        },
+        "top_producers": top_producers,
+        "trends": {
+            "revenue": [{"date": k, "value": v} for k, v in sorted(daily_revenue.items())],
+            "costs": [{"date": k, "value": v} for k, v in sorted(daily_costs.items())]
+        }
+    }
+
 # ============== Work Log Endpoints (Akkord/Piece-rate) ==============
 
 @api_router.get("/work-logs")
