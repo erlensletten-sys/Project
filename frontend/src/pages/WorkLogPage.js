@@ -69,7 +69,7 @@ export default function WorkLogPage() {
     project_id: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
-    work_type: 'akkord', // 'akkord' or 'hourly'
+    work_type: 'hourly',
     area: '',
     base_operation: '',
     addons: [],
