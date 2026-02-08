@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 // Pages
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import { ForgotPasswordPage, ResetPasswordPage } from "@/pages/PasswordResetPages";
 import DashboardPage from "@/pages/DashboardPage";
 import InvoicesPage from "@/pages/InvoicesPage";
 import InvoiceDetailPage from "@/pages/InvoiceDetailPage";
