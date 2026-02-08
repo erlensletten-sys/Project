@@ -14,7 +14,7 @@ import os
 import uuid
 
 # Use REACT_APP_BACKEND_URL from frontend/.env for public URL
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://piece-rate-v2.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://projectdash-preview.preview.emergentagent.com').rstrip('/')
 
 # Test admin credentials
 ADMIN_EMAIL = "test@projectdash.me"
