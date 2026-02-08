@@ -3475,7 +3475,8 @@ async def remove_logo(request: Request):
     
     return {"ok": True}
 
-    logger.info("Database indexes created")
+# ============== Include Router & Lifecycle ==============
+app.include_router(api_router)
 
 @app.on_event("shutdown")
 async def shutdown_event():
