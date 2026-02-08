@@ -61,6 +61,10 @@ export default function PayrollPage() {
   // Payroll run dialog
   const [runDialogOpen, setRunDialogOpen] = useState(false);
   const [creatingRun, setCreatingRun] = useState(false);
+  const [earnings, setEarnings] = useState([]);
+  const [earningsMonth, setEarningsMonth] = useState(new Date().getMonth() + 1);
+  const [earningsYear, setEarningsYear] = useState(new Date().getFullYear());
+  const [loadingEarnings, setLoadingEarnings] = useState(false);
   const [newRun, setNewRun] = useState({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
