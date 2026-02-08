@@ -404,6 +404,14 @@ class UserManagementResponse(BaseModel):
     created_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
 
+# Password Reset Models
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8)
+
 # Payroll Run Models
 class PayrollRunCreate(BaseModel):
     month: int = Field(ge=1, le=12)
