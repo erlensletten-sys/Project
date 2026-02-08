@@ -527,6 +527,13 @@ async def require_hr_or_admin(request: Request) -> dict:
         raise HTTPException(status_code=403, detail="HR or admin access required")
     return user
 
+async def require_member_or_above(request: Request) -> dict:
+    """Require member, admin, or owner role (excludes employee and hr)"""
+    user = await require_auth(request)
+    if user["role"] not in ["member", "admin", "owner"]:
+        raise HTTPException(status_code=403, detail="Member access or above required")
+    return user
+
 def has_permission(user_role: str, permission: str) -> bool:
     """Check if a role has a specific permission"""
     if user_role == "owner":
