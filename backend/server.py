@@ -2640,6 +2640,9 @@ async def get_dashboard_analytics(request: Request, period: str = "month"):
     """Get dashboard analytics - different data for employees vs admins/HR"""
     user = await get_current_user(request)
     
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
     # Determine date range
     now = datetime.now(timezone.utc)
     if period == "week":
