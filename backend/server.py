@@ -785,38 +785,22 @@ def build_invoice_email_html(invoice: dict, group_name: str) -> str:
     """
     return html_content
 
-async def send_invoice_email(invoice: dict, recipient_email: str, group_name: str):
-    """Send invoice email via configured method (SMTP or SendGrid)"""
+async def send_invoice_email(invoice: dict, recipient_email: str, group_name: str, group_id: str = None):
+    """Send invoice email via configured method (SMTP)"""
     
     # Build email content
     html_content = build_invoice_email_html(invoice, group_name)
     subject = f"Invoice {invoice.get('invoice_number')} from {group_name}"
     
-    # Try SMTP first (preferred)
+    # Use group-aware SMTP config
+    if group_id:
+        return await send_email_smtp(recipient_email, subject, html_content, group_id=group_id)
+    
+    # Fallback to env-based check
     if is_email_configured():
         return await send_email_smtp(recipient_email, subject, html_content)
     
-    # Fallback to SendGrid if configured
-    if SENDGRID_AVAILABLE:
-        api_key = os.environ.get('SENDGRID_API_KEY')
-        sender_email = os.environ.get('SENDER_EMAIL', 'noreply@nordicforge.no')
-        
-        if api_key:
-            try:
-                message = Mail(
-                    from_email=sender_email,
-                    to_emails=recipient_email,
-                    subject=subject,
-                    html_content=html_content
-                )
-                sg = SendGridAPIClient(api_key)
-                response = sg.send(message)
-                return response.status_code == 202
-            except Exception as e:
-                logger.error(f"Failed to send email via SendGrid: {e}")
-                return False
-    
-    logger.warning("No email service configured (SMTP or SendGrid)")
+    logger.warning("No email service configured")
     return False
 
 # ============== PDF Generation Helpers ==============
