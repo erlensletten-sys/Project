@@ -549,6 +549,20 @@ export default function SettingsPage() {
             <CardDescription className="text-slate-400">{t('settings.workLogSettingsSubtitle')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Akkord Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+              <div>
+                <Label className="text-sm font-medium">{t('settings.akkordPayment') || 'Akkord (Piece-Rate) Payment'}</Label>
+                <p className="text-xs text-slate-500 mt-1">{t('settings.akkordPaymentHint') || 'Enable or disable Akkord payment type for work logs'}</p>
+              </div>
+              <Switch
+                data-testid="akkord-toggle"
+                checked={akkordEnabled}
+                onCheckedChange={setAkkordEnabled}
+              />
+            </div>
+
+            {/* Hourly Rate */}
             <div className="space-y-2">
               <Label htmlFor="hourly-rate">{t('settings.defaultHourlyRate')}</Label>
               <div className="flex gap-3 items-center">
