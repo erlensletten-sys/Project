@@ -164,6 +164,28 @@ export const uploadFile = async (file) => {
   return response.json();
 };
 
+// Reports
+export const getPaymentSummary = (period = 'month') =>
+  fetchAPI(`/api/reports/payment-summary?period=${period}`);
+
+// Invoice PDF
+export const getInvoicePdfUrl = (invoiceId) =>
+  `${API_URL}/api/invoices/${invoiceId}/pdf`;
+
+// Logo
+export const uploadLogo = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${API_URL}/api/settings/logo`, {
+    method: 'POST', credentials: 'include', body: formData
+  });
+  if (!response.ok) { const e = await response.json().catch(() => ({})); throw new Error(e.detail || 'Upload failed'); }
+  return response.json();
+};
+
+export const removeLogo = () =>
+  fetchAPI('/api/settings/logo', { method: 'DELETE' });
+
 // Invoice Email
 export const sendInvoice = (invoiceId, recipientEmail = null) =>
   fetchAPI(`/api/invoices/${invoiceId}/send`, {
