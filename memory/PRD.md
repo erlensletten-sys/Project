@@ -10,10 +10,11 @@ Small to medium-sized businesses in Norway and other Nordic countries.
 
 ### 1. Authentication & Multi-tenancy
 - Username/password authentication
+- **Password Reset via Email** ✅
 - Multi-tenant architecture with isolated "Groups"
 - Role-based access control (Owner, Admin, HR, Member, Employee)
 
-### 2. User Management (NEW - Feb 2026) ✅
+### 2. User Management ✅
 - **Role Hierarchy:**
   - **Owner**: Full access to all features
   - **Admin**: Manage users, settings, forms, projects, invoices
@@ -25,43 +26,30 @@ Small to medium-sized businesses in Norway and other Nordic countries.
   - Invite users (generates temporary password)
   - Update user roles
   - Deactivate/reactivate users
-  - Filter by active/inactive status
 
-### 3. Invoicing Module
-- Create, send, and track invoices
-- Invoice status management (Draft, Sent, Paid, Overdue)
-- Email notifications for invoice delivery
+### 3. Dashboard Analytics ✅ (NEW - Feb 2026)
+- **Admin/Owner/HR View:**
+  - Revenue (green) - total and pending
+  - Total Costs (red) - labor and expenses
+  - Gross Margin (RED when negative, GREEN when positive)
+  - Work Stats - total jobs and hours
+  - Top Producers - employee rankings by earnings
+- **Employee View:**
+  - Personal Earnings (green)
+  - Hours Worked
+  - Area Completed (m²)
+  - Average per Job
+  - Average per Hour
+  - Median Income (amber highlight)
+- **Period Selector:** Week / Month / Year
 
-### 4. Payroll Module
-- Employee management
-- Payroll runs with history
-- Monthly payroll calculations
-
-### 5. Expenses Module
-- Expense submission and approval workflow
-- Receipt upload functionality (PDF, PNG, JPG)
-- Category-based expense tracking
-
-### 6. Projects Module
-- Project creation and management
-- Task tracking
-- Project budgets and timelines
-
-### 7. HSE Documents Module
-- Health, Safety & Environment documentation
-- Document upload and expiry tracking
-- Document types: Policy, Procedure, Form, Report, Certificate
-
-### 8. Form Builder (Checklists)
-- Admin-created form templates
-- Dynamic field types (text, number, checkbox, dropdown, date)
-- Form submissions linked to projects
-- PDF export of submissions
-
-### 9. Work Log (Enhanced - Akkord + Hourly) ✅
+### 4. Work Log (Enhanced - Akkord + Hourly + Per-Employee Hours) ✅
 - **Work Types:**
   - **Piece Rate (Akkord)**: Based on area (m²) with base operations and add-ons
   - **Hourly Work**: Based on hours × configurable hourly rate
+- **Per-Employee Hour Logging:**
+  - Each worker on a job logs their individual hours
+  - Earnings calculated per worker based on their hours
 - **Base Operations** (Akkord only):
   - Avtrekk: 18 kr/m²
   - Skuring: 22 kr/m²
@@ -73,10 +61,39 @@ Small to medium-sized businesses in Norway and other Nordic countries.
   - Tykkelse 40-50cm: +5 kr/m²
   - Ashford: +10 kr/m²
   - Plastikk: +5 kr/m²
-- **Worker Assignment**: Multiple employees can be assigned to a work log entry
-- **Hourly Rate Setting**: Group admins can configure the default hourly rate
 
-### 10. Settings & Configuration
+### 5. Invoicing Module
+- Create, send, and track invoices
+- Invoice status management (Draft, Sent, Paid, Overdue)
+- Email notifications for invoice delivery
+
+### 6. Payroll Module
+- Employee management
+- Payroll runs with history
+- Monthly payroll calculations
+
+### 7. Expenses Module
+- Expense submission and approval workflow
+- Receipt upload functionality (PDF, PNG, JPG)
+- Category-based expense tracking
+
+### 8. Projects Module
+- Project creation and management
+- Task tracking
+- Project budgets and timelines
+
+### 9. HSE Documents Module
+- Health, Safety & Environment documentation
+- Document upload and expiry tracking
+- Document types: Policy, Procedure, Form, Report, Certificate
+
+### 10. Form Builder (Checklists)
+- Admin-created form templates
+- Dynamic field types (text, number, checkbox, dropdown, date)
+- Form submissions linked to projects
+- PDF export of submissions
+
+### 11. Settings & Configuration
 - Organization management
 - Team member invitation and user management
 - **SMTP Configuration** - Global SMTP settings shared across all groups
@@ -92,6 +109,7 @@ Small to medium-sized businesses in Norway and other Nordic countries.
 - MongoDB for data persistence
 - Session-based authentication (cookies)
 - SMTP integration for email delivery
+- Password reset tokens stored in `password_resets` collection
 
 ### Frontend (React + TailwindCSS)
 - React 18 with React Router
@@ -100,59 +118,6 @@ Small to medium-sized businesses in Norway and other Nordic countries.
 - i18n support with custom language context
 - Theme provider for dark/light modes
 
-### Database Schema
-- `groups`: Organization data (includes hourly_rate, sender_name)
-- `users`: User accounts with role, group association, is_active status
-- `invoices`: Invoice records
-- `employees`: Employee records
-- `payroll_runs`: Payroll history
-- `expenses`: Expense records
-- `projects`: Project data
-- `hse_documents`: HSE documentation
-- `form_templates`: Form builder templates
-- `form_submissions`: Completed form entries
-- `email_configs`: Global SMTP configuration (group_id: "__global__")
-- `work_logs`: Work entries (akkord and hourly)
-- `files`: Uploaded file metadata
-
-## Implemented Features (as of February 2026)
-
-### Completed
-- [x] User authentication (Register/Login)
-- [x] Multi-tenant group management
-- [x] Dashboard with overview metrics
-- [x] Invoicing module (CRUD, status management)
-- [x] Payroll module with run history
-- [x] Expenses with receipt upload
-- [x] Projects management
-- [x] HSE Documents with file upload
-- [x] Form Builder with PDF export
-- [x] Theme system (Dark/Light mode + accent colors including Black)
-- [x] Global SMTP configuration via Settings UI
-- [x] Per-group sender name customization
-- [x] Language selection (English/Norwegian)
-- [x] All pages translated (i18n)
-- [x] **Work Log - Akkord (piece-rate) work type**
-- [x] **Work Log - Hourly work type**
-- [x] **Work Log - Worker assignment**
-- [x] **Group Settings - Hourly rate configuration**
-- [x] Application rebranded to "ProjectDash"
-- [x] **User Management - Create users directly**
-- [x] **User Management - Role hierarchy (Owner/Admin/HR/Member/Employee)**
-- [x] **User Management - Update user roles**
-- [x] **User Management - Deactivate/activate users**
-
-### Backlog
-- [ ] Per-employee hour logging (individual hours per worker on single entry)
-- [ ] Admin form generation (clarification needed)
-- [ ] Real-time invoice email delivery
-- [ ] Password reset functionality
-- [ ] User profile editing
-- [ ] Invoice PDF generation
-- [ ] Expense approval notifications
-- [ ] Dashboard analytics/charts
-- [ ] Mobile-responsive improvements
-
 ## API Endpoints
 
 ### Authentication
@@ -160,80 +125,64 @@ Small to medium-sized businesses in Norway and other Nordic countries.
 - `POST /api/auth/login` - User login
 - `POST /api/auth/logout` - User logout
 - `GET /api/auth/me` - Get current user
+- `POST /api/auth/forgot-password` - Request password reset email ✅
+- `POST /api/auth/reset-password` - Reset password with token ✅
 
-### User Management (NEW)
-- `POST /api/group/users` - Create user directly with password and role
-- `GET /api/group/users` - Get all users (filter by include_inactive)
+### Dashboard Analytics ✅
+- `GET /api/analytics/dashboard?period=week|month|year` - Get role-based analytics
+
+### User Management
+- `POST /api/group/users` - Create user directly
+- `GET /api/group/users` - Get all users
 - `PUT /api/group/users/{id}/role` - Update user role
 - `PUT /api/group/users/{id}/deactivate` - Deactivate user
 - `PUT /api/group/users/{id}/activate` - Reactivate user
-- `POST /api/group/invite` - Invite user (generates temp password)
 
 ### Settings
 - `GET /api/settings/email` - Get SMTP configuration status
 - `PUT /api/settings/email` - Save global SMTP configuration
 - `PUT /api/settings/email/sender-name` - Update per-group sender name
-- `POST /api/settings/email/test` - Send test email
-- `GET /api/settings/group` - Get group settings (hourly_rate)
+- `GET /api/settings/group` - Get group settings
 - `PUT /api/settings/group` - Update group settings
 
-### Group
-- `GET /api/group` - Get current user's group info
-- `GET /api/group/members` - Get group members
-- `GET /api/group/employees` - Get all users in group (for worker selection)
-
 ### Work Logs
-- `GET /api/work-logs` - Get all work logs (admin)
-- `GET /api/work-logs/my` - Get current user's work logs
-- `POST /api/work-logs` - Create work log entry (akkord or hourly)
+- `GET /api/work-logs` - Get all work logs
+- `POST /api/work-logs` - Create work log with per-employee hours
 - `DELETE /api/work-logs/{id}` - Delete work log
-- `GET /api/work-logs/summary/project/{id}` - Project work summary
 - `GET /api/akkord/pricing` - Get pricing structure
 
-### Core Modules
-- `/api/invoices` - Invoice management
-- `/api/employees` - Employee management
-- `/api/payroll-runs` - Payroll operations
-- `/api/expenses` - Expense management
-- `/api/projects` - Project management
-- `/api/hse-documents` - HSE documentation
-- `/api/forms/templates` - Form builder templates
-- `/api/forms/submissions` - Form submissions
+## Implemented Features (as of February 2026)
 
-## Role Permissions
+### Completed
+- [x] User authentication (Register/Login)
+- [x] **Password reset via email** ✅
+- [x] Multi-tenant group management
+- [x] **Dashboard with role-based analytics** ✅
+- [x] Invoicing module
+- [x] Payroll module
+- [x] Expenses with receipt upload
+- [x] Projects management
+- [x] HSE Documents with file upload
+- [x] Form Builder with PDF export
+- [x] Theme system (Dark/Light + Black/Green/Yellow/Purple/Blue/Orange)
+- [x] Global SMTP configuration
+- [x] Per-group sender name customization
+- [x] Language selection (English/Norwegian)
+- [x] All pages translated (i18n)
+- [x] **Work Log - Akkord work type**
+- [x] **Work Log - Hourly work type**
+- [x] **Work Log - Per-employee hour logging** ✅
+- [x] **Group Settings - Hourly rate configuration**
+- [x] **User Management - All roles and operations**
+- [x] Application rebranded to "ProjectDash"
 
-| Permission | Owner | Admin | HR | Member | Employee |
-|------------|-------|-------|-------|--------|----------|
-| View Projects | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Fill Checklists | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Add Expenses | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Log Work | ✅ | ✅ | ✅ | ✅ | ✅ |
-| View Own Data | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Create Invoices | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Manage Projects | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Manage Employees | ✅ | ✅ | ✅ | ❌ | ❌ |
-| View Payroll | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Approve Expenses | ✅ | ✅ | ✅ | ❌ | ❌ |
-| View All Work Logs | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Manage Users | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Manage Settings | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Manage Forms | ✅ | ✅ | ❌ | ❌ | ❌ |
-
-## Environment Variables
-
-### Backend (.env)
-```
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=nordicforge
-CORS_ORIGINS=*
-```
-
-### Frontend (.env)
-```
-REACT_APP_BACKEND_URL=https://piece-rate-v2.preview.emergentagent.com
-```
+### Backlog
+- [ ] Admin form generation (clarification needed)
+- [ ] Invoice PDF generation
+- [ ] Expense approval notifications
+- [ ] Mobile-responsive improvements
 
 ## Test Accounts
 - **Admin/Owner**: test@projectdash.me / Test1234!
-- **Employee**: john.employee@projectdash.me / Password123!
+- **Employee**: worker@projectdash.me / Password123!
 - **HR**: sarah.hr@projectdash.me / Password123!
