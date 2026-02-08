@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, ShieldCheck, Search, Loader2, FileText, AlertTriangle, ExternalLink, Upload } from 'lucide-react';
+import { Plus, ShieldCheck, Search, Loader2, FileText, AlertTriangle, ExternalLink, Upload, Eye, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function HSEPage() {
@@ -34,6 +34,7 @@ export default function HSEPage() {
   const [creating, setCreating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [viewingPdf, setViewingPdf] = useState(null);
   const [newDoc, setNewDoc] = useState({
     title: '',
     document_type: '',
