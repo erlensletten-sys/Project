@@ -3262,6 +3262,220 @@ async def startup_event():
     
     logger.info("Database indexes created")
 
+# ============== Payment Summary Report ==============
+
+@api_router.get("/reports/payment-summary")
+async def get_payment_summary(request: Request, period: str = "month"):
+    """Get payment summary per worker for the group (admin/hr only)"""
+    user = await require_hr_or_admin(request)
+    
+    now = datetime.now(timezone.utc)
+    if period == "week":
+        start = now - timedelta(days=7)
+    elif period == "year":
+        start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    work_logs = await db.work_logs.find({
+        "group_id": user["group_id"],
+        "date": {"$gte": start, "$lte": now}
+    }, {"_id": 0}).to_list(5000)
+    
+    worker_data = {}
+    for log in work_logs:
+        for worker in log.get("workers", []):
+            uid = worker["user_id"]
+            if uid not in worker_data:
+                worker_data[uid] = {
+                    "user_id": uid,
+                    "user_name": worker.get("user_name", "Unknown"),
+                    "total_earnings": 0,
+                    "total_hours": 0,
+                    "akkord_earnings": 0,
+                    "hourly_earnings": 0,
+                    "job_count": 0,
+                    "area_completed": 0
+                }
+            w = worker_data[uid]
+            w["total_earnings"] += worker.get("payment", 0)
+            w["total_hours"] += worker.get("hours", 0)
+            w["job_count"] += 1
+            if log.get("work_type") == "akkord":
+                w["akkord_earnings"] += worker.get("payment", 0)
+                w["area_completed"] += (worker.get("hours", 0) / max(log.get("total_hours", 1), 1)) * log.get("area", 0)
+            else:
+                w["hourly_earnings"] += worker.get("payment", 0)
+    
+    workers = sorted(worker_data.values(), key=lambda x: x["total_earnings"], reverse=True)
+    
+    for w in workers:
+        w["avg_per_hour"] = w["total_earnings"] / max(w["total_hours"], 1)
+        w["area_completed"] = round(w["area_completed"], 1)
+    
+    return {
+        "period": period,
+        "start_date": start.isoformat(),
+        "end_date": now.isoformat(),
+        "total_labor_cost": sum(w["total_earnings"] for w in workers),
+        "total_hours": sum(w["total_hours"] for w in workers),
+        "worker_count": len(workers),
+        "workers": workers
+    }
+
+# ============== Invoice PDF Generation ==============
+
+@api_router.get("/invoices/{invoice_id}/pdf")
+async def generate_invoice_pdf(request: Request, invoice_id: str):
+    """Generate and download invoice as PDF"""
+    user = await require_member_or_above(request)
+    
+    invoice = await db.invoices.find_one(
+        {"invoice_id": invoice_id, "group_id": user["group_id"]},
+        {"_id": 0}
+    )
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    group = await db.groups.find_one({"group_id": user["group_id"]}, {"_id": 0})
+    group_name = group.get("name", "Company") if group else "Company"
+    logo_url = group.get("logo_url") if group else None
+    
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm, leftMargin=2*cm, rightMargin=2*cm)
+    
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('InvTitle', parent=styles['Heading1'], fontSize=24, textColor=colors.HexColor('#0F172A'), spaceAfter=6)
+    subtitle_style = ParagraphStyle('InvSubtitle', parent=styles['Normal'], fontSize=10, textColor=colors.HexColor('#64748B'))
+    label_style = ParagraphStyle('InvLabel', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#94A3B8'), spaceAfter=2)
+    value_style = ParagraphStyle('InvValue', parent=styles['Normal'], fontSize=11, textColor=colors.HexColor('#0F172A'), spaceAfter=8)
+    
+    story = []
+    
+    # Header
+    story.append(Paragraph(f"INVOICE", title_style))
+    story.append(Paragraph(f"From {group_name}", subtitle_style))
+    story.append(Spacer(1, 20))
+    
+    # Invoice info
+    due_date = invoice.get('due_date')
+    if isinstance(due_date, datetime):
+        due_str = due_date.strftime('%d.%m.%Y')
+    elif isinstance(due_date, str):
+        due_str = due_date[:10]
+    else:
+        due_str = 'N/A'
+    
+    info_data = [
+        [Paragraph("Invoice No.", label_style), Paragraph("Date", label_style), Paragraph("Due Date", label_style), Paragraph("Status", label_style)],
+        [Paragraph(invoice.get('invoice_number', ''), value_style), Paragraph(str(invoice.get('created_at', ''))[:10], value_style), Paragraph(due_str, value_style), Paragraph(invoice.get('status', 'draft').upper(), value_style)]
+    ]
+    info_table = Table(info_data, colWidths=[120, 120, 120, 100])
+    info_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F8FAFC')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 16))
+    
+    # Customer
+    story.append(Paragraph("Bill To:", label_style))
+    story.append(Paragraph(invoice.get('customer_name', ''), value_style))
+    if invoice.get('customer_email'):
+        story.append(Paragraph(invoice['customer_email'], subtitle_style))
+    story.append(Spacer(1, 20))
+    
+    # Items table
+    items_data = [['Description', 'Qty', 'Unit Price', 'Total']]
+    for item in invoice.get('items', []):
+        items_data.append([
+            item.get('description', ''),
+            str(item.get('quantity', 0)),
+            f"{item.get('unit_price', 0):,.2f} kr",
+            f"{item.get('total', 0):,.2f} kr"
+        ])
+    
+    items_table = Table(items_data, colWidths=[220, 60, 100, 100])
+    items_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0F172A')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8FAFC')]),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(items_table)
+    story.append(Spacer(1, 16))
+    
+    # Totals
+    totals_data = [
+        ['', '', 'Subtotal:', f"{invoice.get('subtotal', 0):,.2f} kr"],
+        ['', '', 'VAT:', f"{invoice.get('vat_total', 0):,.2f} kr"],
+        ['', '', 'TOTAL:', f"{invoice.get('total', 0):,.2f} kr"],
+    ]
+    totals_table = Table(totals_data, colWidths=[220, 60, 100, 100])
+    totals_table.setStyle(TableStyle([
+        ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('FONTSIZE', (2, 2), (-1, 2), 13),
+        ('TEXTCOLOR', (2, 2), (-1, 2), colors.HexColor('#F97316')),
+        ('LINEABOVE', (2, 2), (-1, 2), 1.5, colors.HexColor('#0F172A')),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    story.append(totals_table)
+    
+    if invoice.get('notes'):
+        story.append(Spacer(1, 20))
+        story.append(Paragraph("Notes:", label_style))
+        story.append(Paragraph(invoice['notes'], subtitle_style))
+    
+    doc.build(story)
+    pdf_bytes = buffer.getvalue()
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=\"{invoice.get('invoice_number', 'invoice')}.pdf\""}
+    )
+
+# ============== Company Branding (Logo Upload) ==============
+
+@api_router.post("/settings/logo")
+async def upload_logo(request: Request, file: UploadFile = File(...)):
+    """Upload company logo (admin only)"""
+    user = await require_admin(request)
+    
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    file_url = await save_upload_file(file, user["group_id"])
+    
+    await db.groups.update_one(
+        {"group_id": user["group_id"]},
+        {"$set": {"logo_url": file_url, "updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    return {"ok": True, "logo_url": file_url}
+
+@api_router.delete("/settings/logo")
+async def remove_logo(request: Request):
+    """Remove company logo (admin only)"""
+    user = await require_admin(request)
+    
+    await db.groups.update_one(
+        {"group_id": user["group_id"]},
+        {"$unset": {"logo_url": ""}, "$set": {"updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    return {"ok": True}
+
+    logger.info("Database indexes created")
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """Run on server shutdown"""
