@@ -77,17 +77,17 @@ function AppRouter() {
       
       {/* Protected Routes */}
       <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-      <Route path="/invoices" element={<ProtectedRoute><InvoicesPage /></ProtectedRoute>} />
-      <Route path="/invoices/new" element={<ProtectedRoute><CreateInvoicePage /></ProtectedRoute>} />
-      <Route path="/invoices/:id" element={<ProtectedRoute><InvoiceDetailPage /></ProtectedRoute>} />
-      <Route path="/payroll" element={<ProtectedRoute><PayrollPage /></ProtectedRoute>} />
+      <Route path="/invoices" element={<ProtectedRoute allowedRoles={['admin', 'owner', 'member']}><InvoicesPage /></ProtectedRoute>} />
+      <Route path="/invoices/new" element={<ProtectedRoute allowedRoles={['admin', 'owner', 'member']}><CreateInvoicePage /></ProtectedRoute>} />
+      <Route path="/invoices/:id" element={<ProtectedRoute allowedRoles={['admin', 'owner', 'member']}><InvoiceDetailPage /></ProtectedRoute>} />
+      <Route path="/payroll" element={<ProtectedRoute allowedRoles={['admin', 'owner', 'hr']}><PayrollPage /></ProtectedRoute>} />
       <Route path="/expenses" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
       <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
       <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
       <Route path="/work-log" element={<ProtectedRoute><WorkLogPage /></ProtectedRoute>} />
       <Route path="/checklists" element={<ProtectedRoute><ChecklistsPage /></ProtectedRoute>} />
       <Route path="/hse" element={<ProtectedRoute><HSEPage /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin', 'owner']}><SettingsPage /></ProtectedRoute>} />
       
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/" replace />} />
