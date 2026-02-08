@@ -304,6 +304,7 @@ class GroupEmailSettingsUpdate(BaseModel):
 # Group Settings Model (for hourly rates)
 class GroupSettingsUpdate(BaseModel):
     hourly_rate: float = Field(ge=0, description="Default hourly rate for the organization")
+    akkord_enabled: Optional[bool] = None
 
 # Work Log Models (Akkord/Piece-rate Payment + Hourly)
 class WorkerHours(BaseModel):
