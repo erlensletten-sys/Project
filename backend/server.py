@@ -1096,6 +1096,7 @@ async def get_me(request: Request):
     
     # Remove password hash from response
     user.pop("password_hash", None)
+    user["is_super_admin"] = is_super_admin(user)
     return user
 
 @api_router.post("/auth/logout")
