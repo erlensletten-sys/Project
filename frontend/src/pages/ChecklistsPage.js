@@ -90,7 +90,7 @@ export default function ChecklistsPage() {
   const [selectedForm, setSelectedForm] = useState(null);
   const [filling, setFilling] = useState(false);
   const [formResponses, setFormResponses] = useState({});
-  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('none');
 
   useEffect(() => {
     loadData();
