@@ -108,7 +108,7 @@ class TestHSEDocuments:
     
     def test_get_hse_documents(self):
         """Test listing HSE documents"""
-        response = self.session.get(f"{BASE_URL}/api/hse", cookies=self.cookies)
+        response = self.session.get(f"{BASE_URL}/api/hse-documents", cookies=self.cookies)
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -116,7 +116,7 @@ class TestHSEDocuments:
     
     def test_create_hse_document_without_file(self):
         """Test creating HSE document without file attachment"""
-        response = self.session.post(f"{BASE_URL}/api/hse", json={
+        response = self.session.post(f"{BASE_URL}/api/hse-documents", json={
             "title": "TEST_Safety Policy",
             "document_type": "policy",
             "content": "This is a test safety policy content."
@@ -129,7 +129,7 @@ class TestHSEDocuments:
     
     def test_create_hse_document_with_file_url(self):
         """Test creating HSE document with file URL (simulating uploaded PDF)"""
-        response = self.session.post(f"{BASE_URL}/api/hse", json={
+        response = self.session.post(f"{BASE_URL}/api/hse-documents", json={
             "title": "TEST_PDF Safety Manual",
             "document_type": "procedure",
             "content": "This document has a PDF attachment.",
@@ -143,7 +143,7 @@ class TestHSEDocuments:
     
     def test_filter_hse_by_type(self):
         """Test filtering HSE documents by type"""
-        response = self.session.get(f"{BASE_URL}/api/hse?document_type=policy", cookies=self.cookies)
+        response = self.session.get(f"{BASE_URL}/api/hse-documents?document_type=policy", cookies=self.cookies)
         assert response.status_code == 200
         data = response.json()
         for doc in data:
