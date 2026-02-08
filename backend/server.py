@@ -1121,7 +1121,7 @@ async def forgot_password(request_body: PasswordResetRequest):
     config = await get_global_email_config()
     
     # Send reset email
-    reset_url = f"{os.environ.get('FRONTEND_URL', 'https://projectdash.me')}/reset-password?token={reset_token}"
+    reset_url = f"{os.environ.get('FRONTEND_URL', '')}/reset-password?token={reset_token}"
     
     html_content = f"""
     <html>
