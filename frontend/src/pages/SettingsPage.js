@@ -84,6 +84,7 @@ export default function SettingsPage() {
 
   // Hourly rate settings
   const [hourlyRate, setHourlyRate] = useState(0);
+  const [akkordEnabled, setAkkordEnabled] = useState(true);
   const [savingRate, setSavingRate] = useState(false);
   
   // User management
