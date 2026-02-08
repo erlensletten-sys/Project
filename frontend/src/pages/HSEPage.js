@@ -404,6 +404,39 @@ export default function HSEPage() {
           ))}
         </div>
       )}
+
+      {/* Inline PDF Viewer */}
+      {viewingPdf && viewingPdf.file_url && (
+        <Card className="card animate-fadeIn" data-testid="pdf-viewer-panel">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="heading text-lg flex items-center gap-2">
+                <FileText size={18} className="text-orange-500" />
+                {viewingPdf.title}
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewingPdf(null)}
+                className="text-slate-400 hover:text-white"
+                data-testid="close-pdf-viewer"
+              >
+                <X size={18} />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg overflow-hidden border border-slate-700 bg-white">
+              <iframe
+                src={viewingPdf.file_url}
+                title={viewingPdf.title}
+                className="w-full"
+                style={{ height: '70vh', minHeight: '500px' }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
