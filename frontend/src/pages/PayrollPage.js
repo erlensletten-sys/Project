@@ -219,6 +219,10 @@ export default function PayrollPage() {
             <Calendar size={16} className="mr-2" />
             {t('payroll.payrollRuns')}
           </TabsTrigger>
+          <TabsTrigger value="earnings" data-testid="tab-earnings" className="data-[state=active]:bg-orange-500">
+            <DollarSign size={16} className="mr-2" />
+            Earnings
+          </TabsTrigger>
         </TabsList>
 
         {/* Employees Tab */}
