@@ -1151,13 +1151,16 @@ async def forgot_password(request_body: PasswordResetRequest):
         message["To"] = user["email"]
         message.attach(MIMEText(html_content, "html"))
         
+        # Use start_tls for port 587 (STARTTLS), use_tls for port 465 (direct TLS)
+        use_starttls = config["smtp_port"] == 587
         await aiosmtplib.send(
             message,
             hostname=config["smtp_host"],
             port=config["smtp_port"],
             username=config["smtp_user"],
             password=config["smtp_password"],
-            use_tls=config.get("smtp_use_tls", True)
+            start_tls=use_starttls,
+            use_tls=not use_starttls and config.get("smtp_use_tls", False)
         )
     except Exception as e:
         logger.error(f"Failed to send password reset email: {e}")
