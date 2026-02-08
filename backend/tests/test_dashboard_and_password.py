@@ -217,9 +217,11 @@ class TestDashboardUnauth:
     def test_dashboard_requires_auth(self):
         """Dashboard should return 401 without authentication"""
         response = requests.get(f"{BASE_URL}/api/analytics/dashboard")
-        # Note: get_current_user returns None for unauth, so the endpoint may handle differently
-        # Check if it returns 401 or handles gracefully
-        assert response.status_code in [401, 500], f"Expected 401, got {response.status_code}"
+        # Should return 401 for unauthenticated requests
+        assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
+        
+        data = response.json()
+        assert "Not authenticated" in data.get("detail", "")
 
 
 class TestPasswordResetRequest:
