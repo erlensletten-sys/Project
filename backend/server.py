@@ -713,6 +713,31 @@ async def send_email_smtp(to_email: str, subject: str, html_content: str, text_c
         logger.error(f"Failed to send email via SMTP: {e}")
         return False
 
+def build_email_wrapper(content_html: str, group_name: str = "ProjectDash") -> str:
+    """Wrap email content in a professional HTML template"""
+    return f"""
+    <html>
+    <body style="font-family: 'Segoe UI', -apple-system, sans-serif; margin: 0; padding: 0; background-color: #f1f5f9;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 32px 16px;">
+            <!-- Header -->
+            <div style="text-align: center; padding: 24px 0 16px;">
+                <div style="display: inline-block; background: linear-gradient(135deg, #f97316, #ea580c); width: 40px; height: 40px; border-radius: 10px; line-height: 40px; text-align: center; color: white; font-weight: bold; font-size: 18px;">P</div>
+                <span style="display: inline-block; vertical-align: middle; margin-left: 10px; font-size: 20px; font-weight: 600; color: #0f172a;">ProjectDash</span>
+            </div>
+            <!-- Content Card -->
+            <div style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                {content_html}
+            </div>
+            <!-- Footer -->
+            <div style="text-align: center; padding: 24px 0 0;">
+                <p style="color: #94a3b8; font-size: 12px; margin: 0;">Sent by ProjectDash on behalf of {group_name}</p>
+                <p style="color: #cbd5e1; font-size: 11px; margin: 6px 0 0;">You received this email because of your account activity.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
 def build_invoice_email_html(invoice: dict, group_name: str) -> str:
     """Build HTML content for invoice email"""
     items_html = ""
