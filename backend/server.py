@@ -1086,7 +1086,8 @@ async def login(request: LoginRequest, response: Response):
             "name": user_doc["name"],
             "role": user_doc["role"],
             "group_id": user_doc["group_id"],
-            "group_name": group_doc["name"] if group_doc else None
+            "group_name": group_doc["name"] if group_doc else None,
+            "is_super_admin": user_doc["email"] == SUPER_ADMIN_EMAIL
         }
     }
 
