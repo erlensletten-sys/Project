@@ -16,7 +16,8 @@ import {
   X,
   Building2,
   HardHat,
-  BarChart3
+  BarChart3,
+  ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
