@@ -27,21 +27,23 @@ Small to medium-sized businesses in Norway and Nordic countries.
 ### 3. Dashboard Analytics
 - Admin/Owner/HR: Financial margins, revenue vs costs, top producers
 - Employee: Personal earnings, hours, area completed, averages, median income
-- Period Selector: Week / Month / Year
 
-### 4. Work Log (Akkord + Hourly + Per-Employee Hours)
-- Piece Rate (Akkord) and Hourly work types
-- Per-employee hour logging with earnings calculation
+### 4. Work Log (Akkord + Hourly)
+- **Akkord (Piece-Rate)**: Configurable per group (enable/disable toggle in Settings)
+- **Hourly**: Always available, configurable hourly rate
+- **Payment Sharing**: Total payment proportionally distributed by worker hours
+  - Formula: `worker_payment = (worker_hours / total_hours) * total_payment`
+- Per-employee hour logging with earnings calculation displayed in table
 
 ### 5. Invoicing, Payroll, Expenses, Projects, HSE, Forms
 - Full CRUD for all modules
+- Invoice email sending via SMTP
 - Form Builder with dynamic fields and PDF export
 - HSE document management with file uploads
-- Invoice email sending (via SMTP)
 
 ### 6. Settings & Configuration
+- **Work Log Settings**: Akkord toggle, hourly rate
 - Global SMTP, per-group sender name
-- Hourly rate configuration
 - Theme (Dark/Light + accent colors including Black)
 - Language (English/Norwegian)
 
@@ -51,19 +53,7 @@ Small to medium-sized businesses in Norway and Nordic countries.
 - **Email**: Brevo SMTP integration
 - **Auth**: Session-based (cookies)
 
-## API Endpoints
-- Auth: /api/auth/register, login, logout, me, forgot-password, reset-password
-- Dashboard: /api/analytics/dashboard
-- User Management: /api/group/users (CRUD), /api/group/invite (sends email)
-- Invoices: /api/invoices (restricted to member+), /api/invoices/{id}/send (sends email)
-- Payroll: /api/payroll/runs (restricted to HR+)
-- Employees: /api/employees (restricted to HR+)
-- Settings: /api/settings/group, /api/settings/email
-- Work Logs: /api/work-logs
-- Forms: /api/forms, /api/forms/{id}/submissions
-- HSE: /api/hse-documents
-
-## Completed Features
+## Completed Features (All Verified)
 - [x] User authentication (Register/Login/Password Reset)
 - [x] Multi-tenant group management
 - [x] Dashboard with role-based analytics
@@ -78,15 +68,17 @@ Small to medium-sized businesses in Norway and Nordic countries.
 - [x] Language selection (English/Norwegian)
 - [x] Work Log (Akkord + Hourly + per-employee hours)
 - [x] User Management with all roles
-- [x] **Role-based permissions (frontend + backend)** - Feb 2026
-- [x] **Form fillability fix** - Feb 2026
-- [x] **Form-project association fix** - Feb 2026
-- [x] **User creation syncs to payroll employees** - Feb 2026
-- [x] **Invitation emails with credentials** - Feb 2026
-- [x] **Invoice sending via SMTP fixed** - Feb 2026
+- [x] Role-based permissions (frontend + backend) - Feb 2026
+- [x] Form fillability fix - Feb 2026
+- [x] Form-project association fix - Feb 2026
+- [x] User creation syncs to payroll employees - Feb 2026
+- [x] Invitation emails with credentials - Feb 2026
+- [x] Invoice sending via SMTP fixed - Feb 2026
+- [x] **Akkord Enable/Disable per Group** - Feb 2026
+- [x] **Akkord Payment Sharing (proportional by hours)** - Feb 2026
 
 ## In Progress
-- [ ] Professional Login/Register page redesign (V2 files created)
+- [ ] Professional Login/Register page redesign (with undraw.co illustrations)
 
 ## Backlog
 - [ ] HSE PDF Upload and viewing
@@ -98,3 +90,4 @@ Small to medium-sized businesses in Norway and Nordic countries.
 ## Test Accounts
 - **Admin/Owner**: testadmin@test.com / TestPass123!
 - **Employee**: employee@test.com / TestPass123!
+- **Test Project**: prj_868390aa0a4a
