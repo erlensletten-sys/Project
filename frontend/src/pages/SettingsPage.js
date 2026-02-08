@@ -136,6 +136,7 @@ export default function SettingsPage() {
       if (response.ok) {
         const data = await response.json();
         setHourlyRate(data.hourly_rate || 0);
+        setAkkordEnabled(data.akkord_enabled !== false);
       }
     } catch (error) {
       console.error('Failed to load group settings:', error);
