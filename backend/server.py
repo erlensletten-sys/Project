@@ -744,10 +744,10 @@ def build_invoice_email_html(invoice: dict, group_name: str) -> str:
     for item in invoice.get("items", []):
         items_html += f"""
         <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">{item['description']}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">{item['quantity']}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">{item['unit_price']:,.2f} kr</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">{item['total']:,.2f} kr</td>
+            <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; color: #334155;">{item['description']}</td>
+            <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: center; color: #64748b;">{item['quantity']}</td>
+            <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #64748b;">{item['unit_price']:,.2f} kr</td>
+            <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: right; font-weight: 600; color: #334155;">{item['total']:,.2f} kr</td>
         </tr>
         """
     
@@ -758,58 +758,51 @@ def build_invoice_email_html(invoice: dict, group_name: str) -> str:
         due_date_str = due_date[:10]
     else:
         due_date_str = 'N/A'
-    
-    html_content = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background-color: #0F172A; color: white; padding: 20px; text-align: center;">
-            <h1 style="margin: 0;">Invoice from {group_name}</h1>
+
+    content = f"""
+        <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 32px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 22px; font-weight: 600;">Invoice from {group_name}</h1>
+            <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Invoice #{invoice.get('invoice_number')}</p>
         </div>
-        
-        <div style="padding: 20px;">
-            <p>Dear {invoice.get('customer_name', 'Customer')},</p>
-            <p>Please find your invoice details below:</p>
+        <div style="padding: 32px;">
+            <p style="color: #334155; font-size: 15px; margin: 0 0 20px;">Dear {invoice.get('customer_name', 'Customer')},</p>
+            <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">Please find your invoice details below.</p>
             
-            <div style="background-color: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 8px;">
-                <p style="margin: 5px 0;"><strong>Invoice Number:</strong> {invoice.get('invoice_number')}</p>
-                <p style="margin: 5px 0;"><strong>Due Date:</strong> {due_date_str}</p>
+            <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+                <div style="flex: 1; background: #f8fafc; border-radius: 10px; padding: 16px;">
+                    <p style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 4px;">Invoice No.</p>
+                    <p style="color: #0f172a; font-weight: 600; margin: 0;">{invoice.get('invoice_number')}</p>
+                </div>
+                <div style="flex: 1; background: #f8fafc; border-radius: 10px; padding: 16px;">
+                    <p style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 4px;">Due Date</p>
+                    <p style="color: #0f172a; font-weight: 600; margin: 0;">{due_date_str}</p>
+                </div>
             </div>
             
-            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse; margin: 0 0 24px;">
                 <thead>
-                    <tr style="background-color: #f8f9fa;">
-                        <th style="padding: 10px; text-align: left;">Description</th>
-                        <th style="padding: 10px; text-align: center;">Qty</th>
-                        <th style="padding: 10px; text-align: right;">Price</th>
-                        <th style="padding: 10px; text-align: right;">Total</th>
+                    <tr>
+                        <th style="padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; border-bottom: 2px solid #f1f5f9;">Description</th>
+                        <th style="padding: 12px 16px; text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; border-bottom: 2px solid #f1f5f9;">Qty</th>
+                        <th style="padding: 12px 16px; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; border-bottom: 2px solid #f1f5f9;">Price</th>
+                        <th style="padding: 12px 16px; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; border-bottom: 2px solid #f1f5f9;">Total</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {items_html}
-                </tbody>
+                <tbody>{items_html}</tbody>
             </table>
             
-            <div style="text-align: right; margin-top: 20px;">
-                <p style="margin: 5px 0;">Subtotal: <strong>{invoice.get('subtotal', 0):,.2f} kr</strong></p>
-                <p style="margin: 5px 0;">VAT: <strong>{invoice.get('vat_total', 0):,.2f} kr</strong></p>
-                <p style="margin: 5px 0; font-size: 1.2em; color: #FF4500;">
-                    Total: <strong>{invoice.get('total', 0):,.2f} kr</strong>
-                </p>
+            <div style="text-align: right; border-top: 2px solid #f1f5f9; padding-top: 16px;">
+                <p style="margin: 4px 0; color: #64748b; font-size: 14px;">Subtotal: <strong style="color: #334155;">{invoice.get('subtotal', 0):,.2f} kr</strong></p>
+                <p style="margin: 4px 0; color: #64748b; font-size: 14px;">VAT: <strong style="color: #334155;">{invoice.get('vat_total', 0):,.2f} kr</strong></p>
+                <p style="margin: 8px 0 0; font-size: 20px; color: #f97316; font-weight: 700;">{invoice.get('total', 0):,.2f} kr</p>
             </div>
             
-            {f'<p style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border-radius: 8px;"><strong>Notes:</strong> {invoice.get("notes")}</p>' if invoice.get("notes") else ''}
+            {f'<div style="margin-top: 24px; padding: 16px; background: #fffbeb; border-radius: 10px; border-left: 4px solid #f59e0b;"><p style="margin: 0; color: #92400e; font-size: 13px;"><strong>Notes:</strong> {invoice.get("notes")}</p></div>' if invoice.get("notes") else ''}
             
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-            
-            <p style="color: #666; font-size: 0.9em;">
-                Thank you for your business!<br>
-                {group_name}
-            </p>
+            <p style="color: #94a3b8; font-size: 13px; margin: 32px 0 0;">Thank you for your business!<br><strong style="color: #64748b;">{group_name}</strong></p>
         </div>
-    </body>
-    </html>
     """
-    return html_content
+    return build_email_wrapper(content, group_name)
 
 async def send_invoice_email(invoice: dict, recipient_email: str, group_name: str, group_id: str = None):
     """Send invoice email via configured method (SMTP)"""
