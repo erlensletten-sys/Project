@@ -147,6 +147,19 @@ export default function PayrollPage() {
     return language === 'nb' ? month?.labelNb : month?.label;
   };
 
+  const loadEarnings = async () => {
+    setLoadingEarnings(true);
+    try {
+      const data = await getPayrollEarnings(earningsMonth, earningsYear);
+      setEarnings(data);
+    } catch { toast.error('Failed to load earnings'); }
+    finally { setLoadingEarnings(false); }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'earnings') loadEarnings();
+  }, [activeTab, earningsMonth, earningsYear]);
+
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(search.toLowerCase()) ||
     emp.position.toLowerCase().includes(search.toLowerCase())
