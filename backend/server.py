@@ -1544,7 +1544,7 @@ async def list_employees(request: Request, status: Optional[str] = None):
 @api_router.post("/employees", response_model=EmployeeResponse, status_code=201)
 async def create_employee(request: Request, employee: EmployeeCreate):
     """Create a new employee"""
-    user = await require_auth(request)
+    user = await require_hr_or_admin(request)
     
     employee_id = f"emp_{uuid.uuid4().hex[:12]}"
     employee_doc = {
