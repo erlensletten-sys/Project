@@ -1047,6 +1047,9 @@ async def login(request: LoginRequest, response: Response):
     if not verify_password(request.password, user_doc["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
+    if user_doc.get("is_banned"):
+        raise HTTPException(status_code=403, detail="Your account has been suspended. Contact support.")
+    
     # Get group name
     group_doc = await db.groups.find_one(
         {"group_id": user_doc["group_id"]},
