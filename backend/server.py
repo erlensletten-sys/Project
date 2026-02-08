@@ -2709,6 +2709,7 @@ async def get_group_settings(request: Request):
         "name": group["name"],
         "hourly_rate": group.get("hourly_rate", 0),
         "akkord_enabled": group.get("akkord_enabled", True),
+        "logo_url": group.get("logo_url"),
         "akkord_base_prices": group.get("akkord_base_prices", AKKORD_BASE_PRICES),
         "akkord_addon_prices": group.get("akkord_addon_prices", AKKORD_ADDON_PRICES)
     }
