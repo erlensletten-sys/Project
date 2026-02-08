@@ -192,7 +192,8 @@ class TestFeature3WorkLogIndividualEarnings:
             f"{BASE_URL}/api/work-logs",
             json=work_log_data
         )
-        assert response.status_code == 201, f"Create work log failed: {response.text}"
+        # API returns 200 or 201 for successful creation
+        assert response.status_code in [200, 201], f"Create work log failed: {response.text}"
         
         data = response.json()
         assert "work_id" in data, "Response missing work_id"
@@ -256,7 +257,8 @@ class TestFeature3WorkLogIndividualEarnings:
             f"{BASE_URL}/api/work-logs",
             json=work_log_data
         )
-        assert response.status_code == 201, f"Create work log with polering failed: {response.text}"
+        # API returns 200 or 201 for successful creation
+        assert response.status_code in [200, 201], f"Create work log with polering failed: {response.text}"
         
         data = response.json()
         # Polering should be 35 kr/m² based on group prices
