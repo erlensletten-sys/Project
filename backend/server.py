@@ -1376,6 +1376,22 @@ async def create_user_directly(request: Request, create_req: CreateUserRequest):
         "needs_password_change": False
     })
     
+    # Also create an employee record for payroll
+    employee_id = f"emp_{uuid.uuid4().hex[:12]}"
+    await db.employees.insert_one({
+        "employee_id": employee_id,
+        "group_id": user["group_id"],
+        "user_id": user_id,
+        "name": create_req.name,
+        "email": create_req.email,
+        "position": role.capitalize(),
+        "department": None,
+        "salary": 0,
+        "start_date": datetime.now(timezone.utc),
+        "status": "active",
+        "created_at": datetime.now(timezone.utc)
+    })
+    
     return {
         "ok": True,
         "user_id": user_id,
