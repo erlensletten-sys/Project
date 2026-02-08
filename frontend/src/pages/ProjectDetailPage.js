@@ -399,7 +399,7 @@ export default function ProjectDetailPage() {
                       key={sub.submission_id}
                       data-testid={`submission-${sub.submission_id}`}
                       className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-orange-300 transition-colors cursor-pointer"
-                      onClick={() => setViewSubmission(viewSubmission?.submission_id === sub.submission_id ? null : sub)}
+                      onClick={() => handleViewSubmission(sub)}
                     >
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                         <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
