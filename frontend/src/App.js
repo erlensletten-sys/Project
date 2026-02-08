@@ -91,6 +91,7 @@ function AppRouter() {
       <Route path="/hse" element={<ProtectedRoute><HSEPage /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin', 'owner', 'hr']}><ReportsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin', 'owner']}><SettingsPage /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><SuperAdminPage /></ProtectedRoute>} />
       
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/" replace />} />
