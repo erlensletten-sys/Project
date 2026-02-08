@@ -39,6 +39,7 @@ export default function Layout({ children }) {
     { path: '/work-log', label: t('nav.workLog'), icon: HardHat, roles: 'all' },
     { path: '/checklists', label: t('nav.checklists'), icon: ClipboardCheck, roles: 'all' },
     { path: '/hse', label: t('nav.hseDocuments'), icon: ShieldCheck, roles: 'all' },
+    { path: '/reports', label: t('nav.reports') || 'Reports', icon: BarChart3, roles: 'hr' },
     { path: '/settings', label: t('nav.settings'), icon: Settings, roles: 'admin' },
   ];
 
