@@ -654,7 +654,7 @@ export default function WorkLogPage() {
                           {log.workers && log.workers.length > 0 ? (
                             <div className="text-xs">
                               {log.workers.map((w, i) => (
-                                <span key={i} className="block">{w.user_name}: {w.hours}t</span>
+                                <span key={i} className="block">{w.user_name}: {w.hours}t - {formatCurrency(w.payment || 0)}</span>
                               ))}
                             </div>
                           ) : '-'}
