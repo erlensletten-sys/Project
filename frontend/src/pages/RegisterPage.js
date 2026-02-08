@@ -89,9 +89,7 @@ export default function RegisterPage() {
           <div className="w-full max-w-[400px] mx-auto">
 
             <div className="flex items-center gap-2.5 mb-14">
-              <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #60a5fa, #3b82f6)' }}>
-                <span className="text-white font-bold text-xs">P</span>
-              </div>
+              <img src="/logo.png" alt="ProjectDash" className="w-8 h-8 rounded-md object-contain" />
               <span className="text-base font-semibold text-slate-200 tracking-tight">ProjectDash</span>
             </div>
 
