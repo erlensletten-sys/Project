@@ -233,6 +233,7 @@ class TestPasswordResetRequest:
             "email": ADMIN_EMAIL
         })
         # Returns 200 with message OR 503 if SMTP not configured
+        # Note: The endpoint raises HTTPException with 503 which should be returned
         assert response.status_code in [200, 503], f"Expected 200 or 503, got {response.status_code}: {response.text}"
         
         data = response.json()
