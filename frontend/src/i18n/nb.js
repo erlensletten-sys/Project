@@ -45,6 +45,7 @@ export const nb = {
     workLog: "Arbeidslogg",
     checklists: "Sjekklister",
     hseDocuments: "HMS-dokumenter",
+    reports: "Rapporter",
     settings: "Innstillinger",
     signOut: "Logg ut",
   },
