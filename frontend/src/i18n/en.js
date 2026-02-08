@@ -45,6 +45,7 @@ export const en = {
     workLog: "Work Log",
     checklists: "Checklists",
     hseDocuments: "HSE Documents",
+    reports: "Reports",
     settings: "Settings",
     signOut: "Sign out",
   },
