@@ -219,7 +219,7 @@ export default function WorkLogPage() {
       project_id: '',
       date: new Date().toISOString().split('T')[0],
       description: '',
-      work_type: 'akkord',
+      work_type: groupSettings?.akkord_enabled !== false ? 'akkord' : 'hourly',
       area: '',
       base_operation: '',
       addons: [],
