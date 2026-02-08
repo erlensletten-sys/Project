@@ -74,7 +74,7 @@ export function ForgotPasswordPage() {
                   <Label htmlFor="email" className="text-sm font-medium text-slate-300">Email address</Label>
                   <Input id="email" data-testid="forgot-email-input" type="email" placeholder="name@company.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 bg-slate-900/60 border-slate-700/60 text-white placeholder:text-slate-500 focus:border-orange-500/60 focus:ring-1 focus:ring-orange-500/30 rounded-lg" />
                 </div>
-                <Button type="submit" data-testid="forgot-submit-btn" className="h-11 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all duration-200" disabled={loading}>
+                <Button type="submit" data-testid="forgot-submit-btn" className="h-11 w-full text-white font-semibold rounded-lg transition-all duration-200" style={{ backgroundColor: '#f97316' }} onMouseEnter={(e) => e.target.style.backgroundColor = '#ea580c'} onMouseLeave={(e) => e.target.style.backgroundColor = '#f97316'} disabled={loading}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Mail size={16} className="mr-2" /> Send reset link</>}
                 </Button>
               </form>
