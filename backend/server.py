@@ -2330,7 +2330,7 @@ async def get_dashboard_stats(request: Request):
 @api_router.get("/payroll/runs")
 async def list_payroll_runs(request: Request):
     """List all payroll runs for the group"""
-    user = await require_auth(request)
+    user = await require_hr_or_admin(request)
     
     runs = await db.payroll_runs.find(
         {"group_id": user["group_id"]},
@@ -2401,7 +2401,7 @@ async def create_payroll_run(request: Request, run: PayrollRunCreate):
 @api_router.get("/payroll/runs/{run_id}")
 async def get_payroll_run(request: Request, run_id: str):
     """Get a specific payroll run"""
-    user = await require_auth(request)
+    user = await require_hr_or_admin(request)
     
     run = await db.payroll_runs.find_one(
         {"run_id": run_id, "group_id": user["group_id"]},
