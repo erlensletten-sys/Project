@@ -3475,6 +3475,56 @@ async def remove_logo(request: Request):
     
     return {"ok": True}
 
+# ============== Akkord Unit Management ==============
+
+@api_router.get("/settings/akkord-prices")
+async def get_akkord_prices(request: Request):
+    """Get akkord prices for the group"""
+    user = await require_auth(request)
+    group = await db.groups.find_one({"group_id": user["group_id"]}, {"_id": 0})
+    
+    base_prices = group.get("akkord_base_prices", AKKORD_BASE_PRICES) if group else AKKORD_BASE_PRICES
+    addon_prices = group.get("akkord_addon_prices", AKKORD_ADDON_PRICES) if group else AKKORD_ADDON_PRICES
+    
+    return {
+        "base_prices": base_prices,
+        "addon_prices": addon_prices
+    }
+
+@api_router.put("/settings/akkord-prices")
+async def update_akkord_prices(request: Request):
+    """Update akkord base and addon prices (admin only)"""
+    user = await require_admin(request)
+    body = await request.json()
+    
+    base_prices = body.get("base_prices")
+    addon_prices = body.get("addon_prices")
+    
+    update = {"updated_at": datetime.now(timezone.utc)}
+    if base_prices is not None:
+        # Validate: must be dict of string -> number
+        if not isinstance(base_prices, dict):
+            raise HTTPException(status_code=400, detail="base_prices must be an object")
+        for k, v in base_prices.items():
+            if not isinstance(v, (int, float)) or v < 0:
+                raise HTTPException(status_code=400, detail=f"Invalid price for {k}")
+        update["akkord_base_prices"] = base_prices
+    
+    if addon_prices is not None:
+        if not isinstance(addon_prices, dict):
+            raise HTTPException(status_code=400, detail="addon_prices must be an object")
+        for k, v in addon_prices.items():
+            if not isinstance(v, (int, float)):
+                raise HTTPException(status_code=400, detail=f"Invalid price for {k}")
+        update["akkord_addon_prices"] = addon_prices
+    
+    await db.groups.update_one(
+        {"group_id": user["group_id"]},
+        {"$set": update}
+    )
+    
+    return {"ok": True}
+
 # ============== Include Router & Lifecycle ==============
 app.include_router(api_router)
 
