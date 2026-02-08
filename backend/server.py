@@ -2533,7 +2533,12 @@ async def get_file(group_id: str, filename: str, request: Request):
     file_doc = await db.files.find_one({"safe_filename": filename}, {"_id": 0})
     content_type = file_doc.get("content_type", "application/octet-stream") if file_doc else "application/octet-stream"
     
-    return FileResponse(file_path, media_type=content_type)
+    # Serve PDFs inline so they can be viewed in iframe
+    headers = {}
+    if content_type == "application/pdf":
+        headers["Content-Disposition"] = f"inline; filename=\"{filename}\""
+    
+    return FileResponse(file_path, media_type=content_type, headers=headers)
 
 # ============== Invoice Email Endpoint ==============
 
