@@ -465,7 +465,7 @@ export default function SettingsPage() {
                     accentColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110' : 'hover:scale-105'
                   }`}
                   style={{
-                    backgroundColor: color === 'black' ? '#3f3f46' :
+                    backgroundColor: color === 'black' ? '#0f172a' :
                       color === 'green' ? '#22c55e' :
                       color === 'yellow' ? '#eab308' :
                       color === 'purple' ? '#a855f7' :
