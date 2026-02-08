@@ -41,6 +41,7 @@ export default function Layout({ children }) {
     { path: '/hse', label: t('nav.hseDocuments'), icon: ShieldCheck, roles: 'all' },
     { path: '/reports', label: t('nav.reports') || 'Reports', icon: BarChart3, roles: 'hr' },
     { path: '/settings', label: t('nav.settings'), icon: Settings, roles: 'admin' },
+    ...(user?.is_super_admin ? [{ path: '/admin', label: 'Super Admin', icon: ShieldAlert, roles: 'all' }] : []),
   ];
 
   const navItems = allNavItems.filter(item => {
