@@ -96,7 +96,10 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               data-testid="login-submit-btn"
-              className="h-11 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all duration-200 mt-2"
+              className="h-11 w-full text-white font-semibold rounded-lg transition-all duration-200 mt-2"
+              style={{ backgroundColor: '#f97316' }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#ea580c'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#f97316'}
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
