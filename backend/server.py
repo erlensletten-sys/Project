@@ -1508,7 +1508,7 @@ async def get_invoice(request: Request, invoice_id: str):
 @api_router.patch("/invoices/{invoice_id}/status")
 async def update_invoice_status(request: Request, invoice_id: str, status: str):
     """Update invoice status"""
-    user = await require_auth(request)
+    user = await require_member_or_above(request)
     
     if status not in ["draft", "sent", "paid", "overdue", "cancelled"]:
         raise HTTPException(status_code=400, detail="Invalid status")
