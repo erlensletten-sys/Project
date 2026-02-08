@@ -241,7 +241,7 @@ export default function SettingsPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ hourly_rate: parseFloat(hourlyRate) || 0 })
+        body: JSON.stringify({ hourly_rate: parseFloat(hourlyRate) || 0, akkord_enabled: akkordEnabled })
       });
       
       if (response.ok) {
