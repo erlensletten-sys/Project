@@ -1239,8 +1239,8 @@ async def get_group_members(request: Request):
     return members
 
 @api_router.post("/group/invite")
-async def invite_user(request: Request, invite: InviteUserRequest):
-    """Invite a new user to the group (admin only)"""
+async def invite_user(request: Request, invite: InviteUserRequest, background_tasks: BackgroundTasks):
+    """Invite a new user to the group (admin only) - sends email invitation"""
     user = await require_admin(request)
     
     # Check if email already exists
@@ -1270,11 +1270,79 @@ async def invite_user(request: Request, invite: InviteUserRequest):
         "needs_password_change": True
     })
     
+    # Also create an employee record for payroll
+    employee_id = f"emp_{uuid.uuid4().hex[:12]}"
+    await db.employees.insert_one({
+        "employee_id": employee_id,
+        "group_id": user["group_id"],
+        "user_id": user_id,
+        "name": invite.name,
+        "email": invite.email,
+        "position": role.capitalize(),
+        "department": None,
+        "salary": 0,
+        "start_date": datetime.now(timezone.utc),
+        "status": "active",
+        "created_at": datetime.now(timezone.utc)
+    })
+    
+    # Send invitation email
+    group_doc = await db.groups.find_one({"group_id": user["group_id"]}, {"_id": 0, "name": 1})
+    group_name = group_doc.get("name", "ProjectDash") if group_doc else "ProjectDash"
+    
+    frontend_url = os.environ.get('REACT_APP_BACKEND_URL', os.environ.get('FRONTEND_URL', ''))
+    login_url = f"{frontend_url}/login"
+    
+    html_content = f"""
+    <html>
+    <body style="font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background-color: #0f172a;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <div style="background-color: #1e293b; border-radius: 16px; overflow: hidden; border: 1px solid #334155;">
+                <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 32px; text-align: center;">
+                    <h1 style="color: white; margin: 0; font-size: 24px;">You're Invited!</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0;">Join {group_name} on ProjectDash</p>
+                </div>
+                <div style="padding: 32px;">
+                    <p style="color: #e2e8f0; font-size: 16px; margin-bottom: 24px;">Hello {invite.name},</p>
+                    <p style="color: #94a3b8; font-size: 14px; line-height: 1.6;">
+                        {user['name']} has invited you to join <strong style="color: #e2e8f0;">{group_name}</strong> on ProjectDash as a <strong style="color: #f97316;">{role.capitalize()}</strong>.
+                    </p>
+                    <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin: 24px 0; border: 1px solid #334155;">
+                        <p style="color: #94a3b8; font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 1px;">Your Login Credentials</p>
+                        <p style="color: #e2e8f0; margin: 4px 0;"><strong>Email:</strong> {invite.email}</p>
+                        <p style="color: #e2e8f0; margin: 4px 0;"><strong>Temporary Password:</strong> <code style="background: #334155; padding: 2px 8px; border-radius: 4px; color: #f97316;">{temp_password}</code></p>
+                    </div>
+                    <div style="text-align: center; margin: 32px 0;">
+                        <a href="{login_url}" style="display: inline-block; background-color: #f97316; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Sign In Now</a>
+                    </div>
+                    <p style="color: #64748b; font-size: 12px; text-align: center;">Please change your password after your first login.</p>
+                </div>
+                <div style="padding: 20px 32px; border-top: 1px solid #334155; text-align: center;">
+                    <p style="color: #475569; font-size: 12px; margin: 0;">Sent by ProjectDash on behalf of {group_name}</p>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    email_sent = False
+    try:
+        email_sent = await send_email_smtp(
+            invite.email,
+            f"You're invited to join {group_name} on ProjectDash",
+            html_content,
+            group_id=user["group_id"]
+        )
+    except Exception as e:
+        logger.error(f"Failed to send invite email: {e}")
+    
     return {
         "ok": True,
         "user_id": user_id,
         "temp_password": temp_password,
-        "message": f"User invited. Temporary password: {temp_password}"
+        "email_sent": email_sent,
+        "message": f"User invited successfully." + (" Invitation email sent." if email_sent else " Email could not be sent - share the credentials manually.")
     }
 
 @api_router.post("/group/users")
