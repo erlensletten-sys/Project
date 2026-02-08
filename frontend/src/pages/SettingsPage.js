@@ -152,6 +152,8 @@ export default function SettingsPage() {
         setHourlyRate(data.hourly_rate || 0);
         setAkkordEnabled(data.akkord_enabled !== false);
         setLogoUrl(data.logo_url || null);
+        setBasePrices(data.akkord_base_prices || {});
+        setAddonPrices(data.akkord_addon_prices || {});
       }
     } catch (error) {
       console.error('Failed to load group settings:', error);
