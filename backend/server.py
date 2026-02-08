@@ -1424,7 +1424,7 @@ async def get_group_users(request: Request, include_inactive: bool = False):
 @api_router.get("/invoices", response_model=List[InvoiceResponse])
 async def list_invoices(request: Request, status: Optional[str] = None):
     """List all invoices for the group"""
-    user = await require_auth(request)
+    user = await require_member_or_above(request)
     
     query = {"group_id": user["group_id"]}
     if status:
