@@ -1089,6 +1089,108 @@ async def logout(request: Request, response: Response):
     
     return {"ok": True, "message": "Logged out"}
 
+@api_router.post("/auth/forgot-password")
+async def forgot_password(request_body: PasswordResetRequest):
+    """Request a password reset - sends email with reset link"""
+    # Find user by email
+    user = await db.users.find_one({"email": request_body.email})
+    
+    # Always return success to prevent email enumeration
+    if not user:
+        return {"ok": True, "message": "If an account exists with this email, a reset link has been sent."}
+    
+    # Check if email is configured
+    configured = await is_email_configured_global()
+    if not configured:
+        raise HTTPException(status_code=503, detail="Email service is not configured. Please contact your administrator.")
+    
+    # Generate reset token
+    reset_token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    
+    # Store reset token
+    await db.password_resets.update_one(
+        {"user_id": user["user_id"]},
+        {
+            "$set": {
+                "user_id": user["user_id"],
+                "token": reset_token,
+                "expires_at": expires_at,
+                "created_at": datetime.now(timezone.utc)
+            }
+        },
+        upsert=True
+    )
+    
+    # Get the email config
+    config = await get_global_email_config()
+    
+    # Send reset email
+    reset_url = f"{os.environ.get('FRONTEND_URL', 'https://projectdash.me')}/reset-password?token={reset_token}"
+    
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #0f172a; color: #e2e8f0;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px;">
+            <h1 style="color: #22c55e; margin-bottom: 20px;">Password Reset</h1>
+            <p style="margin-bottom: 20px;">Hello {user['name']},</p>
+            <p style="margin-bottom: 20px;">You requested a password reset for your ProjectDash account.</p>
+            <p style="margin-bottom: 30px;">Click the button below to reset your password. This link expires in 1 hour.</p>
+            <a href="{reset_url}" style="display: inline-block; background-color: #22c55e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Reset Password</a>
+            <p style="margin-top: 30px; font-size: 12px; color: #94a3b8;">If you didn't request this reset, you can safely ignore this email.</p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    try:
+        message = MIMEMultipart("alternative")
+        message["Subject"] = "Password Reset - ProjectDash"
+        message["From"] = formataddr((config.get("sender_name", "ProjectDash"), config.get("sender_email")))
+        message["To"] = user["email"]
+        message.attach(MIMEText(html_content, "html"))
+        
+        await aiosmtplib.send(
+            message,
+            hostname=config["smtp_host"],
+            port=config["smtp_port"],
+            username=config["smtp_user"],
+            password=config["smtp_password"],
+            use_tls=config.get("smtp_use_tls", True)
+        )
+    except Exception as e:
+        logger.error(f"Failed to send password reset email: {e}")
+        raise HTTPException(status_code=500, detail="Failed to send reset email. Please try again later.")
+    
+    return {"ok": True, "message": "If an account exists with this email, a reset link has been sent."}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(reset_data: PasswordResetConfirm):
+    """Reset password using the token from email"""
+    # Find valid reset token
+    reset_doc = await db.password_resets.find_one({
+        "token": reset_data.token,
+        "expires_at": {"$gt": datetime.now(timezone.utc)}
+    })
+    
+    if not reset_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    
+    # Update password
+    password_hash = hash_password(reset_data.new_password)
+    await db.users.update_one(
+        {"user_id": reset_doc["user_id"]},
+        {"$set": {"password_hash": password_hash, "updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    # Delete the reset token
+    await db.password_resets.delete_one({"token": reset_data.token})
+    
+    # Invalidate all existing sessions for this user
+    await db.user_sessions.delete_many({"user_id": reset_doc["user_id"]})
+    
+    return {"ok": True, "message": "Password reset successfully. Please login with your new password."}
+
 # ============== Group Management ==============
 
 @api_router.get("/group", response_model=GroupResponse)
