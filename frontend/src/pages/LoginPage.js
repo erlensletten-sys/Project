@@ -26,24 +26,11 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && data.ok) {
-        login(data.user);
-        toast.success(t('auth.loginSuccess'));
-        navigate('/');
-      } else {
-        toast.error(data.detail || t('auth.invalidCredentials'));
-      }
+      await login(email, password);
+      toast.success(t('auth.loginSuccess'));
+      navigate('/');
     } catch (error) {
-      toast.error(t('auth.loginFailed'));
+      toast.error(error.message || t('auth.invalidCredentials'));
     } finally {
       setLoading(false);
     }
