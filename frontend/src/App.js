@@ -22,6 +22,7 @@ import ChecklistsPage from "@/pages/ChecklistsPage";
 import HSEPage from "@/pages/HSEPage";
 import SettingsPage from "@/pages/SettingsPage";
 import WorkLogPage from "@/pages/WorkLogPage";
+import ReportsPage from "@/pages/ReportsPage";
 
 // Layout
 import Layout from "@/components/Layout";
