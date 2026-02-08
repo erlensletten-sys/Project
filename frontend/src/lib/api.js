@@ -186,6 +186,26 @@ export const uploadLogo = async (file) => {
 export const removeLogo = () =>
   fetchAPI('/api/settings/logo', { method: 'DELETE' });
 
+// Super Admin
+export const getSuperAdminStats = () => fetchAPI('/api/superadmin/stats');
+export const getSuperAdminGroups = () => fetchAPI('/api/superadmin/groups');
+export const getSuperAdminUsers = (groupId) =>
+  fetchAPI(`/api/superadmin/users${groupId ? `?group_id=${groupId}` : ''}`);
+export const toggleGroupFeatures = (groupId, disabledFeatures) =>
+  fetchAPI(`/api/superadmin/groups/${groupId}/features`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ disabled_features: disabledFeatures })
+  });
+export const banUser = (userId, banned) =>
+  fetchAPI(`/api/superadmin/users/${userId}/ban`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ banned })
+  });
+
+// Payroll Earnings
+export const getPayrollEarnings = (month, year) =>
+  fetchAPI(`/api/payroll/earnings?month=${month}&year=${year}`);
+
 // Invoice Email
 export const sendInvoice = (invoiceId, recipientEmail = null) =>
   fetchAPI(`/api/invoices/${invoiceId}/send`, {
