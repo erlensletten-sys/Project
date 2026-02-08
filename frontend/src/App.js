@@ -68,6 +68,8 @@ function AppRouter() {
       {/* Public Routes */}
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       
       {/* Protected Routes */}
       <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
