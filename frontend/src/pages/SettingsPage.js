@@ -647,6 +647,179 @@ export default function SettingsPage() {
         </Card>
       )}
 
+      {/* Akkord Price Management (Admin Only) */}
+      {isAdmin && akkordEnabled && (
+        <Card className="card">
+          <CardHeader>
+            <CardTitle className="heading text-lg flex items-center gap-2">
+              <Square size={20} />
+              {t('settings.akkordPrices') || 'Akkord Prices'}
+            </CardTitle>
+            <p className="text-sm text-slate-500">{t('settings.akkordPricesHint') || 'Manage base operations and add-on prices per m²'}</p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Base Operations */}
+            <div>
+              <Label className="text-sm font-semibold mb-3 block">{t('settings.baseOperations') || 'Base Operations'}</Label>
+              <div className="space-y-2">
+                {Object.entries(basePrices).map(([name, price]) => (
+                  <div key={name} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/50 border border-slate-700">
+                    <span className="flex-1 text-sm font-medium capitalize">{name}</span>
+                    <Input
+                      type="number"
+                      value={price}
+                      onChange={(e) => setBasePrices({...basePrices, [name]: parseFloat(e.target.value) || 0})}
+                      className="w-24 h-8 text-sm text-right"
+                      min="0"
+                      step="0.5"
+                    />
+                    <span className="text-xs text-slate-500 w-12">kr/m²</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-400 hover:text-red-300 h-8 w-8 p-0"
+                      onClick={() => {
+                        const updated = {...basePrices};
+                        delete updated[name];
+                        setBasePrices(updated);
+                      }}
+                      data-testid={`remove-base-${name}`}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                ))}
+                <div className="flex items-center gap-2 mt-2">
+                  <Input
+                    placeholder={t('settings.unitName') || 'Unit name'}
+                    value={newUnitName}
+                    onChange={(e) => setNewUnitName(e.target.value)}
+                    className="flex-1 h-9 text-sm"
+                    data-testid="new-base-unit-name"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Price"
+                    value={newUnitPrice}
+                    onChange={(e) => setNewUnitPrice(e.target.value)}
+                    className="w-24 h-9 text-sm"
+                    min="0"
+                    data-testid="new-base-unit-price"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 border-slate-600"
+                    disabled={!newUnitName || !newUnitPrice}
+                    onClick={() => {
+                      if (newUnitName && newUnitPrice) {
+                        setBasePrices({...basePrices, [newUnitName.toLowerCase()]: parseFloat(newUnitPrice)});
+                        setNewUnitName('');
+                        setNewUnitPrice('');
+                      }
+                    }}
+                    data-testid="add-base-unit-btn"
+                  >
+                    <Plus size={14} className="mr-1" /> {t('common.add') || 'Add'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Add-ons */}
+            <div>
+              <Label className="text-sm font-semibold mb-3 block">{t('settings.addons') || 'Add-ons'}</Label>
+              <div className="space-y-2">
+                {Object.entries(addonPrices).map(([name, price]) => (
+                  <div key={name} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/50 border border-slate-700">
+                    <span className="flex-1 text-sm font-medium capitalize">{name}</span>
+                    <Input
+                      type="number"
+                      value={price}
+                      onChange={(e) => setAddonPrices({...addonPrices, [name]: parseFloat(e.target.value) || 0})}
+                      className="w-24 h-8 text-sm text-right"
+                      step="0.5"
+                    />
+                    <span className="text-xs text-slate-500 w-12">kr/m²</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-400 hover:text-red-300 h-8 w-8 p-0"
+                      onClick={() => {
+                        const updated = {...addonPrices};
+                        delete updated[name];
+                        setAddonPrices(updated);
+                      }}
+                      data-testid={`remove-addon-${name}`}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                ))}
+                <div className="flex items-center gap-2 mt-2">
+                  <Input
+                    placeholder={t('settings.addonName') || 'Add-on name'}
+                    value={newAddonName}
+                    onChange={(e) => setNewAddonName(e.target.value)}
+                    className="flex-1 h-9 text-sm"
+                    data-testid="new-addon-name"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Price"
+                    value={newAddonPrice}
+                    onChange={(e) => setNewAddonPrice(e.target.value)}
+                    className="w-24 h-9 text-sm"
+                    data-testid="new-addon-price"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 border-slate-600"
+                    disabled={!newAddonName || !newAddonPrice}
+                    onClick={() => {
+                      if (newAddonName && newAddonPrice) {
+                        setAddonPrices({...addonPrices, [newAddonName.toLowerCase()]: parseFloat(newAddonPrice)});
+                        setNewAddonName('');
+                        setNewAddonPrice('');
+                      }
+                    }}
+                    data-testid="add-addon-btn"
+                  >
+                    <Plus size={14} className="mr-1" /> {t('common.add') || 'Add'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Save Prices */}
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              disabled={savingPrices}
+              data-testid="save-akkord-prices-btn"
+              onClick={async () => {
+                setSavingPrices(true);
+                try {
+                  const API_URL = process.env.REACT_APP_BACKEND_URL;
+                  const res = await fetch(`${API_URL}/api/settings/akkord-prices`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ base_prices: basePrices, addon_prices: addonPrices })
+                  });
+                  if (res.ok) toast.success(t('settings.pricesSaved') || 'Prices saved');
+                  else toast.error('Failed to save prices');
+                } catch { toast.error('Failed to save prices'); }
+                finally { setSavingPrices(false); }
+              }}
+            >
+              {savingPrices ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+              {t('settings.savePrices') || 'Save Prices'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Email Settings (Admin Only) */}
       {isAdmin && (
         <Card className="card">
