@@ -204,7 +204,7 @@ export default function ChecklistsPage() {
     try {
       await createFormSubmission(selectedForm.form_id, {
         form_id: selectedForm.form_id,
-        project_id: selectedProjectId || null,
+        project_id: selectedProjectId === 'none' ? null : selectedProjectId,
         responses: formResponses
       });
       toast.success('Form submitted successfully');
