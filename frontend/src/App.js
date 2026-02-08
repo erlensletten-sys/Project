@@ -88,6 +88,7 @@ function AppRouter() {
       <Route path="/work-log" element={<ProtectedRoute><WorkLogPage /></ProtectedRoute>} />
       <Route path="/checklists" element={<ProtectedRoute><ChecklistsPage /></ProtectedRoute>} />
       <Route path="/hse" element={<ProtectedRoute><HSEPage /></ProtectedRoute>} />
+      <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin', 'owner', 'hr']}><ReportsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin', 'owner']}><SettingsPage /></ProtectedRoute>} />
       
       {/* Catch all */}
