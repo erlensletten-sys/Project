@@ -1,79 +1,85 @@
 # ProjectDash - Product Requirements Document
 
 ## Overview
-ProjectDash is a multi-tenant business management platform combining invoicing, payroll, expense management, checklists, HSE documentation, and project management.
+ProjectDash is a multi-tenant business management platform for invoicing, payroll, expenses, checklists, HSE, and project management.
 
-## Target Audience
-Small to medium-sized businesses in Norway and Nordic countries.
+## Core Features (All Implemented)
 
-## Core Features
+### Authentication & Multi-tenancy
+- Register/Login/Password Reset with Brevo SMTP
+- Professional split-layout auth pages with illustrations
+- Role-based access (Owner > Admin > HR > Member > Employee)
 
-### 1. Authentication & Multi-tenancy
-- Username/password authentication, Password Reset via Email (Brevo SMTP)
-- Multi-tenant architecture with isolated "Groups"
-- Role-based access control (Owner, Admin, HR, Member, Employee)
+### User Management  
+- Create, invite (with styled email), edit roles, deactivate/reactivate
+- Payroll sync on user creation
 
-### 2. User Management
-- Owner > Admin > HR > Member > Employee hierarchy
-- Create, invite (with email), edit roles, deactivate/reactivate
-- Payroll Sync: Creating/inviting a user auto-creates employee record
+### Dashboard Analytics
+- Admin/HR: Financial margins, revenue vs costs
+- Employee: Personal earnings, hours, productivity
 
-### 3. Dashboard Analytics
-- Admin/Owner/HR: Financial margins, revenue vs costs
-- Employee: Personal earnings, hours, area
+### Work Log
+- Akkord (Piece-Rate): Toggle on/off per group in Settings
+- Hourly: Configurable rate
+- Payment sharing: proportional by hours worked
 
-### 4. Work Log (Akkord + Hourly)
-- Akkord (Piece-Rate): Configurable per group (enable/disable toggle)
-- Hourly: Always available, configurable hourly rate
-- Payment Sharing: `worker_payment = (worker_hours / total_hours) * total_payment`
+### Projects
+- CRUD with tasks (To Do / Completed)
+- Checklists tab showing linked form submissions with detail view
 
-### 5. Projects
-- Full CRUD with tasks (To Do / Completed)
-- **Checklists tab**: Shows form submissions linked to the project with detail view
+### Invoicing, Payroll, Expenses
+- Full CRUD, invoice email sending with styled HTML templates
 
-### 6. Invoicing, Payroll, Expenses, HSE, Forms
-- Full CRUD, invoice email sending, form builder with PDF export
-- HSE document management with file uploads
+### Forms & Checklists
+- Dynamic form builder, PDF export, project linking
 
-### 7. Settings
-- Akkord toggle, hourly rate, SMTP config, theme, language
+### HSE Documents
+- Document management with file upload
+- Inline PDF viewer (iframe)
 
-## Completed Features
-- [x] User auth (Register/Login/Password Reset) with Brevo SMTP
-- [x] Multi-tenant group management
-- [x] Dashboard with role-based analytics
+### Settings
+- Akkord toggle, hourly rate, SMTP config
+- Theme (Dark/Light + accent colors), Language (EN/NO)
+
+### Email Templates
+- Shared wrapper with ProjectDash branding
+- Styled templates: invoice, password reset, user invitation
+
+## Technical Stack
+- Backend: FastAPI + MongoDB
+- Frontend: React 18 + TailwindCSS + Shadcn/UI
+- Email: Brevo SMTP
+- Auth: Session-based cookies
+
+## All Completed Features
+- [x] Auth (Register/Login/Password Reset)
+- [x] Professional auth page redesign (Feb 2026)
+- [x] Multi-tenant groups
+- [x] Dashboard analytics (role-based)
 - [x] Invoicing with email sending
 - [x] Payroll module
-- [x] Expenses with receipt upload
-- [x] Projects with tasks
-- [x] HSE Documents with file upload
+- [x] Expenses with receipts
+- [x] Projects with tasks + checklists tab
+- [x] HSE Documents with PDF viewer
 - [x] Form Builder with PDF export
-- [x] Theme system (Dark/Light + 6 accent colors)
-- [x] Language selection (English/Norwegian)
+- [x] Theme system + language selection
 - [x] Work Log (Akkord + Hourly)
 - [x] User Management with all roles
-- [x] Role-based permissions (frontend + backend) - Feb 2026
-- [x] Form fillability fix - Feb 2026
-- [x] Form-project association fix - Feb 2026
-- [x] User creation syncs to payroll employees - Feb 2026
-- [x] Invitation emails with credentials - Feb 2026
-- [x] Invoice sending via SMTP fixed - Feb 2026
-- [x] Akkord Enable/Disable per Group - Feb 2026
-- [x] Akkord Payment Sharing (proportional by hours) - Feb 2026
-- [x] **Submitted Checklists in Project Detail (Tabs)** - Feb 2026
-
-## In Progress
-- [ ] Professional Login/Register page redesign (with undraw.co illustrations)
+- [x] Role-based permissions
+- [x] Form fillability + project linking fixes
+- [x] User creation payroll sync
+- [x] Invitation emails
+- [x] Akkord enable/disable per group
+- [x] Akkord payment sharing
+- [x] HTML email templates
+- [x] HSE inline PDF viewing
 
 ## Backlog
-- [ ] HSE PDF Upload and viewing
-- [ ] HTML Email Templates (pretty design)
-- [ ] Code cleanup (remove old auth files)
-- [ ] Invoice PDF generation
+- [ ] Invoice PDF generation improvements
 - [ ] Mobile-responsive improvements
+- [ ] Payment summary per worker report
+- [ ] Company branding (logo upload)
 
 ## Test Accounts
 - Admin/Owner: testadmin@test.com / TestPass123!
 - Employee: employee@test.com / TestPass123!
-- Test Project: prj_868390aa0a4a
-- Test Form: frm_44821bc2e793
