@@ -3228,7 +3228,7 @@ async def health_check():
     return {"status": "healthy", "app": "ProjectDash", "version": "1.0.0"}
 
 # Include the router
-app.include_router(api_router)
+# Router will be included after all endpoints are defined
 
 # CORS middleware
 app.add_middleware(
