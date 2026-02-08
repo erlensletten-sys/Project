@@ -6,10 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, Building2, Shield, Zap, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronRight } from 'lucide-react';
 
-// Hero image for the visual panel
-const HERO_IMAGE = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80";
+const ILLUSTRATION = "https://static.prod-images.emergentagent.com/jobs/e092c34e-e184-480c-9705-0791d2782d66/images/4b5f3346085e2645ce6ef6cf85c3584863e49f47533be14838c9ee6e39592491.png";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -22,7 +21,6 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
       await login(email, password);
       toast.success(t('auth.loginSuccess'));
@@ -35,56 +33,30 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen w-full overflow-hidden bg-[#020817]">
-      {/* Left Panel - Form */}
-      <div className="relative flex flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-24 py-12 h-full">
-        {/* Noise texture overlay */}
-        <div 
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
-          }}
-        />
-        
-        {/* Back to home link */}
-        <Link 
-          to="/" 
-          className="absolute top-8 left-8 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
-          data-testid="back-home-link"
-        >
-          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm font-medium">Home</span>
-        </Link>
-
-        <div className="w-full max-w-md mx-auto space-y-8 relative z-10">
-          {/* Logo & Brand */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-green-500" />
+    <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen w-full">
+      {/* Left - Form */}
+      <div className="flex flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-24 py-12 bg-[#020817]">
+        <div className="w-full max-w-[420px] mx-auto space-y-8">
+          {/* Brand */}
+          <div>
+            <div className="flex items-center gap-2.5 mb-10">
+              <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">P</span>
               </div>
-              <span className="text-xl font-semibold text-white tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-                ProjectDash
-              </span>
+              <span className="text-lg font-semibold text-white tracking-tight">ProjectDash</span>
             </div>
-            
-            <h1 
-              className="text-4xl md:text-5xl font-bold text-white tracking-tight"
-              style={{ fontFamily: 'Space Grotesk, sans-serif' }}
-            >
+            <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
               Welcome back
             </h1>
-            <p className="text-slate-400 text-lg">
-              Enter your credentials to access your workspace.
+            <p className="text-slate-400 mt-2 text-base">
+              Sign in to continue to your workspace.
             </p>
           </div>
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-slate-300">
-                Email address
-              </Label>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-sm font-medium text-slate-300">Email</Label>
               <Input
                 id="email"
                 data-testid="login-email-input"
@@ -93,18 +65,16 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-12 bg-slate-900/50 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all duration-200"
+                className="h-11 bg-slate-900/60 border-slate-700/60 text-white placeholder:text-slate-500 focus:border-orange-500/60 focus:ring-1 focus:ring-orange-500/30 rounded-lg"
               />
             </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium text-slate-300">
-                  Password
-                </Label>
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-green-500 hover:text-green-400 transition-colors"
+
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="password" className="text-sm font-medium text-slate-300">Password</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-orange-400 hover:text-orange-300 transition-colors"
                   data-testid="forgot-password-link"
                 >
                   Forgot password?
@@ -114,11 +84,11 @@ export default function LoginPage() {
                 id="password"
                 data-testid="login-password-input"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="h-12 bg-slate-900/50 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all duration-200"
+                className="h-11 bg-slate-900/60 border-slate-700/60 text-white placeholder:text-slate-500 focus:border-orange-500/60 focus:ring-1 focus:ring-orange-500/30 rounded-lg"
               />
             </div>
 
@@ -126,31 +96,21 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               data-testid="login-submit-btn"
-              className="h-12 w-full bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="h-11 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all duration-200 mt-2"
             >
               {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Signing in...
-                </>
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <>
-                  Sign in
-                  <ChevronRight className="ml-2 h-5 w-5" />
-                </>
+                <>Sign in <ChevronRight className="ml-1.5 h-4 w-4" /></>
               )}
             </Button>
           </form>
 
-          {/* Register Link */}
+          {/* Divider */}
           <div className="pt-6 border-t border-slate-800">
-            <p className="text-center text-slate-400">
+            <p className="text-center text-sm text-slate-400">
               Don't have an account?{' '}
-              <Link 
-                to="/register" 
-                className="text-green-500 hover:text-green-400 font-medium transition-colors"
-                data-testid="register-link"
-              >
+              <Link to="/register" className="text-orange-400 hover:text-orange-300 font-medium" data-testid="register-link">
                 Create organization
               </Link>
             </p>
@@ -158,60 +118,31 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Panel - Visual */}
-      <div className="hidden lg:flex flex-col justify-between relative overflow-hidden">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${HERO_IMAGE})` }}
-        />
-        
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#020817] via-[#020817]/70 to-[#020817]/30" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#020817]/50 to-transparent" />
-        
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-end h-full p-12">
-          {/* Trust Badges */}
-          <div className="flex gap-6 mb-8">
-            <div className="flex items-center gap-2 text-slate-300">
-              <div className="w-8 h-8 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center justify-center">
-                <Shield className="w-4 h-4 text-green-500" />
-              </div>
-              <span className="text-sm font-medium">Enterprise Security</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-300">
-              <div className="w-8 h-8 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center justify-center">
-                <Zap className="w-4 h-4 text-green-500" />
-              </div>
-              <span className="text-sm font-medium">99.9% Uptime</span>
-            </div>
-          </div>
-
-          {/* Main Text */}
-          <h2 
-            className="text-4xl xl:text-5xl font-bold text-white mb-4 max-w-lg tracking-tight"
-            style={{ fontFamily: 'Space Grotesk, sans-serif' }}
-          >
-            Building the future of Nordic enterprise.
-          </h2>
-          <p className="text-xl text-slate-400 max-w-md">
-            Secure. Efficient. Reliable.
+      {/* Right - Illustration */}
+      <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-orange-50 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.03]" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, #1e293b 1px, transparent 0)', backgroundSize: '20px 20px'}} />
+        <div className="relative z-10 flex flex-col items-center px-12 max-w-lg text-center">
+          <img
+            src={ILLUSTRATION}
+            alt="Project dashboard"
+            className="w-full max-w-md mb-10 drop-shadow-xl"
+          />
+          <h2 className="text-2xl font-bold text-slate-800 mb-3">Manage projects with clarity</h2>
+          <p className="text-slate-500 leading-relaxed">
+            Invoicing, payroll, checklists, and HSE documentation — all in one place.
           </p>
-
-          {/* Stats */}
-          <div className="flex gap-12 mt-12 pt-8 border-t border-slate-700/50">
-            <div>
-              <div className="text-3xl font-bold text-white" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>2,500+</div>
-              <div className="text-sm text-slate-400">Active businesses</div>
+          <div className="flex gap-8 mt-8 pt-6 border-t border-slate-200 w-full justify-center">
+            <div className="text-center">
+              <div className="text-xl font-bold text-slate-800">2,500+</div>
+              <div className="text-xs text-slate-500">Businesses</div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-white" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>50M+</div>
-              <div className="text-sm text-slate-400">Invoices processed</div>
+            <div className="text-center">
+              <div className="text-xl font-bold text-slate-800">50M+</div>
+              <div className="text-xs text-slate-500">Invoices</div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-white" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>4.9/5</div>
-              <div className="text-sm text-slate-400">Customer rating</div>
+            <div className="text-center">
+              <div className="text-xl font-bold text-slate-800">4.9/5</div>
+              <div className="text-xs text-slate-500">Rating</div>
             </div>
           </div>
         </div>
