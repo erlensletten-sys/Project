@@ -1142,20 +1142,18 @@ async def forgot_password(request_body: PasswordResetRequest):
     # Send reset email
     reset_url = f"{os.environ.get('FRONTEND_URL', '')}/reset-password?token={reset_token}"
     
-    html_content = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #0f172a; color: #e2e8f0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 12px;">
-            <h1 style="color: #22c55e; margin-bottom: 20px;">Password Reset</h1>
-            <p style="margin-bottom: 20px;">Hello {user['name']},</p>
-            <p style="margin-bottom: 20px;">You requested a password reset for your ProjectDash account.</p>
-            <p style="margin-bottom: 30px;">Click the button below to reset your password. This link expires in 1 hour.</p>
-            <a href="{reset_url}" style="display: inline-block; background-color: #22c55e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Reset Password</a>
-            <p style="margin-top: 30px; font-size: 12px; color: #94a3b8;">If you didn't request this reset, you can safely ignore this email.</p>
+    html_content = build_email_wrapper(f"""
+        <div style="padding: 40px 32px; text-align: center;">
+            <div style="width: 56px; height: 56px; background: #fef3c7; border-radius: 50%; margin: 0 auto 20px; line-height: 56px; text-align: center;">
+                <span style="font-size: 24px;">&#128274;</span>
+            </div>
+            <h2 style="color: #0f172a; font-size: 22px; font-weight: 600; margin: 0 0 8px;">Password Reset</h2>
+            <p style="color: #64748b; font-size: 14px; margin: 0 0 24px;">Hello {user['name']}, you requested a password reset.</p>
+            <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0 0 32px;">Click the button below to choose a new password. This link expires in <strong style="color: #334155;">1 hour</strong>.</p>
+            <a href="{reset_url}" style="display: inline-block; background: linear-gradient(135deg, #f97316, #ea580c); color: white; padding: 14px 36px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px;">Reset Password</a>
+            <p style="color: #94a3b8; font-size: 12px; margin: 32px 0 0;">If you didn't request this, you can safely ignore this email.</p>
         </div>
-    </body>
-    </html>
-    """
+    """, "ProjectDash")
     
     try:
         message = MIMEMultipart("alternative")
