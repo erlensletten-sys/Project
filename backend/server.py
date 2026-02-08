@@ -3543,6 +3543,159 @@ async def update_akkord_prices(request: Request):
     
     return {"ok": True}
 
+# ============== Super Admin Endpoints ==============
+
+ALL_TOGGLEABLE_FEATURES = [
+    "akkord", "invoicing", "payroll", "hse", "checklists", 
+    "reports", "expenses", "projects", "work_log", "forms"
+]
+
+@api_router.get("/superadmin/stats")
+async def superadmin_stats(request: Request):
+    """Platform-wide statistics"""
+    await require_super_admin(request)
+    
+    total_groups = await db.groups.count_documents({})
+    total_users = await db.users.count_documents({})
+    active_users = await db.users.count_documents({"is_active": True})
+    banned_users = await db.users.count_documents({"is_banned": True})
+    total_invoices = await db.invoices.count_documents({})
+    total_work_logs = await db.work_logs.count_documents({})
+    
+    return {
+        "groups": total_groups,
+        "users": total_users,
+        "active_users": active_users,
+        "banned_users": banned_users,
+        "invoices": total_invoices,
+        "work_logs": total_work_logs
+    }
+
+@api_router.get("/superadmin/groups")
+async def superadmin_list_groups(request: Request):
+    """List all groups with their settings"""
+    await require_super_admin(request)
+    
+    groups = await db.groups.find({}, {"_id": 0}).to_list(1000)
+    
+    for g in groups:
+        member_count = await db.users.count_documents({"group_id": g["group_id"]})
+        g["member_count"] = member_count
+        g["disabled_features"] = g.get("disabled_features", [])
+    
+    return groups
+
+@api_router.put("/superadmin/groups/{group_id}/features")
+async def superadmin_toggle_features(request: Request, group_id: str):
+    """Enable/disable features for a group"""
+    await require_super_admin(request)
+    body = await request.json()
+    
+    disabled_features = body.get("disabled_features", [])
+    # Validate feature names
+    for f in disabled_features:
+        if f not in ALL_TOGGLEABLE_FEATURES:
+            raise HTTPException(status_code=400, detail=f"Invalid feature: {f}")
+    
+    result = await db.groups.update_one(
+        {"group_id": group_id},
+        {"$set": {"disabled_features": disabled_features, "updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    return {"ok": True, "disabled_features": disabled_features}
+
+@api_router.get("/superadmin/users")
+async def superadmin_list_users(request: Request, group_id: Optional[str] = None):
+    """List all users (optionally filtered by group)"""
+    await require_super_admin(request)
+    
+    query = {}
+    if group_id:
+        query["group_id"] = group_id
+    
+    users = await db.users.find(query, {"_id": 0, "password_hash": 0}).to_list(5000)
+    
+    # Add group name for each user
+    group_cache = {}
+    for u in users:
+        gid = u.get("group_id")
+        if gid and gid not in group_cache:
+            g = await db.groups.find_one({"group_id": gid}, {"_id": 0, "name": 1})
+            group_cache[gid] = g.get("name", "Unknown") if g else "Unknown"
+        u["group_name"] = group_cache.get(gid, "Unknown")
+        u["is_banned"] = u.get("is_banned", False)
+    
+    return users
+
+@api_router.put("/superadmin/users/{user_id}/ban")
+async def superadmin_ban_user(request: Request, user_id: str):
+    """Ban or unban a user"""
+    await require_super_admin(request)
+    body = await request.json()
+    
+    banned = body.get("banned", True)
+    
+    result = await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"is_banned": banned, "is_active": not banned, "updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # If banning, also kill their sessions
+    if banned:
+        await db.user_sessions.delete_many({"user_id": user_id})
+    
+    return {"ok": True, "banned": banned}
+
+# ============== Enhanced Payroll (with Work Log Earnings) ==============
+
+@api_router.get("/payroll/earnings")
+async def get_payroll_earnings(request: Request, month: int, year: int):
+    """Get work log earnings per employee for a given month"""
+    user = await require_hr_or_admin(request)
+    
+    start = datetime(year, month, 1, tzinfo=timezone.utc)
+    if month == 12:
+        end = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        end = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+    
+    work_logs = await db.work_logs.find({
+        "group_id": user["group_id"],
+        "date": {"$gte": start, "$lt": end}
+    }, {"_id": 0}).to_list(5000)
+    
+    earnings = {}
+    for log in work_logs:
+        for worker in log.get("workers", []):
+            uid = worker["user_id"]
+            if uid not in earnings:
+                earnings[uid] = {
+                    "user_id": uid,
+                    "user_name": worker.get("user_name", "Unknown"),
+                    "akkord_earnings": 0,
+                    "hourly_earnings": 0,
+                    "total_earnings": 0,
+                    "total_hours": 0,
+                    "job_count": 0
+                }
+            e = earnings[uid]
+            payment = worker.get("payment", 0)
+            e["total_earnings"] += payment
+            e["total_hours"] += worker.get("hours", 0)
+            e["job_count"] += 1
+            if log.get("work_type") == "akkord":
+                e["akkord_earnings"] += payment
+            else:
+                e["hourly_earnings"] += payment
+    
+    return list(earnings.values())
+
 # ============== Include Router & Lifecycle ==============
 app.include_router(api_router)
 
