@@ -450,7 +450,7 @@ export default function ProjectDetailPage() {
                 <div className="space-y-3">
                   {Object.entries(viewSubmission.responses || {}).map(([fieldId, value]) => (
                     <div key={fieldId} className="flex justify-between items-start p-3 bg-slate-50 rounded-lg">
-                      <span className="text-sm text-slate-500 font-mono">{fieldId}</span>
+                      <span className="text-sm text-slate-600 font-medium">{viewFormFields[fieldId] || fieldId}</span>
                       <span className="text-sm font-medium text-slate-900 text-right ml-4">
                         {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
                       </span>
