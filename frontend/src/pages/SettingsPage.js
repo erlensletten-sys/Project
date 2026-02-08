@@ -82,6 +82,11 @@ export default function SettingsPage() {
   const [groupSenderName, setGroupSenderName] = useState('');
   const [savingSenderName, setSavingSenderName] = useState(false);
 
+  // Company branding
+  const [logoUrl, setLogoUrl] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = React.useRef(null);
+
   // Hourly rate settings
   const [hourlyRate, setHourlyRate] = useState(0);
   const [akkordEnabled, setAkkordEnabled] = useState(true);
