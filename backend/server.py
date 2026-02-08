@@ -3025,17 +3025,23 @@ async def create_work_log(request: Request, work: WorkLogCreate):
         if not group.get("akkord_enabled", True):
             raise HTTPException(status_code=400, detail="Akkord payment is disabled for this group")
         
+        # Use group-specific prices or fall back to defaults
+        group_base_prices = group.get("akkord_base_prices", AKKORD_BASE_PRICES)
+        group_addon_prices = group.get("akkord_addon_prices", AKKORD_ADDON_PRICES)
+        
         # Validate base operation for akkord work
-        if not work.base_operation or work.base_operation not in AKKORD_BASE_PRICES:
-            raise HTTPException(status_code=400, detail=f"Invalid base operation. Must be one of: {list(AKKORD_BASE_PRICES.keys())}")
+        if not work.base_operation or work.base_operation not in group_base_prices:
+            raise HTTPException(status_code=400, detail=f"Invalid base operation. Must be one of: {list(group_base_prices.keys())}")
         
         # Validate add-ons
-        invalid_addons = [a for a in work.addons if a not in AKKORD_ADDON_PRICES]
+        invalid_addons = [a for a in work.addons if a not in group_addon_prices]
         if invalid_addons:
             raise HTTPException(status_code=400, detail=f"Invalid add-ons: {invalid_addons}")
         
-        # Calculate akkord payment
-        rate_per_sqm = calculate_akkord_rate(work.base_operation, work.addons)
+        # Calculate akkord payment using group prices
+        base_price = group_base_prices[work.base_operation]
+        addon_total = sum(group_addon_prices.get(a, 0) for a in (work.addons or []))
+        rate_per_sqm = base_price + addon_total
         total_payment = (work.area or 0) * rate_per_sqm
     else:
         # Hourly work
