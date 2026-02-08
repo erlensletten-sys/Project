@@ -1274,7 +1274,7 @@ async def invite_user(request: Request, invite: InviteUserRequest, background_ta
     group_doc = await db.groups.find_one({"group_id": user["group_id"]}, {"_id": 0, "name": 1})
     group_name = group_doc.get("name", "ProjectDash") if group_doc else "ProjectDash"
     
-    frontend_url = os.environ.get('REACT_APP_BACKEND_URL', os.environ.get('FRONTEND_URL', ''))
+    frontend_url = os.environ.get('FRONTEND_URL', '')
     login_url = f"{frontend_url}/login"
     
     html_content = f"""
