@@ -1567,7 +1567,7 @@ async def create_employee(request: Request, employee: EmployeeCreate):
 @api_router.get("/employees/{employee_id}", response_model=EmployeeResponse)
 async def get_employee(request: Request, employee_id: str):
     """Get a specific employee"""
-    user = await require_auth(request)
+    user = await require_hr_or_admin(request)
     
     employee = await db.employees.find_one(
         {"employee_id": employee_id, "group_id": user["group_id"]},
