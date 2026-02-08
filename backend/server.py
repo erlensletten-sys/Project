@@ -1440,7 +1440,7 @@ async def list_invoices(request: Request, status: Optional[str] = None):
 @api_router.post("/invoices", response_model=InvoiceResponse, status_code=201)
 async def create_invoice(request: Request, invoice: InvoiceCreate):
     """Create a new invoice"""
-    user = await require_auth(request)
+    user = await require_member_or_above(request)
     
     # Generate invoice number
     count = await db.invoices.count_documents({"group_id": user["group_id"]})
