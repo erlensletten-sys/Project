@@ -3205,22 +3205,21 @@ async def get_project_work_summary(request: Request, project_id: str):
 
 @api_router.get("/akkord/pricing")
 async def get_akkord_pricing(request: Request):
-    """Get the akkord pricing structure"""
-    await get_current_user(request)
+    """Get the akkord pricing structure (uses group-specific prices)"""
+    user = await get_current_user(request)
+    
+    group = await db.groups.find_one({"group_id": user["group_id"]}, {"_id": 0})
+    base_prices = group.get("akkord_base_prices", AKKORD_BASE_PRICES) if group else AKKORD_BASE_PRICES
+    addon_prices = group.get("akkord_addon_prices", AKKORD_ADDON_PRICES) if group else AKKORD_ADDON_PRICES
     
     return {
         "base_operations": [
-            {"id": "avtrekk", "name": "Avtrekk", "price": 18},
-            {"id": "skuring", "name": "Skuring", "price": 22},
-            {"id": "glatting", "name": "Glatting", "price": 26}
+            {"id": k, "name": k.capitalize().replace('_', ' '), "price": v}
+            for k, v in base_prices.items()
         ],
         "addons": [
-            {"id": "sikatop_x1", "name": "Sikatop x1", "price": 3},
-            {"id": "sikatop_x2", "name": "Sikatop x2", "price": 6},
-            {"id": "tykkelse_30_40", "name": "Tykkelse 30-40cm", "price": 3},
-            {"id": "tykkelse_40_50", "name": "Tykkelse 40-50cm", "price": 5},
-            {"id": "ashford", "name": "Ashford", "price": 10},
-            {"id": "plastikk", "name": "Plastikk", "price": 5}
+            {"id": k, "name": k.capitalize().replace('_', ' '), "price": v}
+            for k, v in addon_prices.items()
         ],
         "currency": "NOK",
         "unit": "kr/m²"
