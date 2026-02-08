@@ -535,6 +535,108 @@ export default function PayrollPage() {
             </div>
           )}
         </TabsContent>
+
+        {/* Earnings Tab */}
+        <TabsContent value="earnings" className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={earningsMonth}
+              onChange={(e) => setEarningsMonth(parseInt(e.target.value))}
+              className="h-10 px-3 rounded-lg bg-slate-800 border border-slate-700 text-sm"
+              data-testid="earnings-month"
+            >
+              {MONTHS.map(m => (
+                <option key={m.value} value={m.value}>{language === 'nb' ? m.labelNb : m.label}</option>
+              ))}
+            </select>
+            <Input
+              type="number"
+              value={earningsYear}
+              onChange={(e) => setEarningsYear(parseInt(e.target.value))}
+              className="w-24 h-10"
+              data-testid="earnings-year"
+            />
+          </div>
+
+          {loadingEarnings ? (
+            <div className="flex justify-center py-12"><Loader2 className="animate-spin h-6 w-6 text-slate-500" /></div>
+          ) : earnings.length === 0 ? (
+            <Card className="card">
+              <CardContent className="py-12 text-center text-slate-500">
+                No work logged for {getMonthLabel(earningsMonth)} {earningsYear}.
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Summary */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Card className="card">
+                  <CardContent className="p-5 text-center">
+                    <p className="text-xs text-slate-500 mb-1">Total Earnings</p>
+                    <p className="text-xl font-bold text-green-400">{formatCurrency(earnings.reduce((s, e) => s + e.total_earnings, 0))}</p>
+                  </CardContent>
+                </Card>
+                <Card className="card">
+                  <CardContent className="p-5 text-center">
+                    <p className="text-xs text-slate-500 mb-1">Akkord</p>
+                    <p className="text-xl font-bold text-orange-400">{formatCurrency(earnings.reduce((s, e) => s + e.akkord_earnings, 0))}</p>
+                  </CardContent>
+                </Card>
+                <Card className="card">
+                  <CardContent className="p-5 text-center">
+                    <p className="text-xs text-slate-500 mb-1">Hourly</p>
+                    <p className="text-xl font-bold text-blue-400">{formatCurrency(earnings.reduce((s, e) => s + e.hourly_earnings, 0))}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Per-employee breakdown */}
+              <Card className="card">
+                <CardHeader>
+                  <CardTitle className="heading text-lg">Employee Earnings - {getMonthLabel(earningsMonth)} {earningsYear}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm" data-testid="earnings-table">
+                      <thead>
+                        <tr className="border-b border-slate-700">
+                          <th className="text-left py-3 px-4 text-xs text-slate-500 uppercase">Employee</th>
+                          <th className="text-right py-3 px-4 text-xs text-slate-500 uppercase">Hours</th>
+                          <th className="text-right py-3 px-4 text-xs text-slate-500 uppercase">Jobs</th>
+                          <th className="text-right py-3 px-4 text-xs text-orange-500/70 uppercase">Akkord</th>
+                          <th className="text-right py-3 px-4 text-xs text-blue-500/70 uppercase">Hourly</th>
+                          <th className="text-right py-3 px-4 text-xs text-slate-500 uppercase">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {earnings.sort((a, b) => b.total_earnings - a.total_earnings).map(e => (
+                          <tr key={e.user_id} className="border-b border-slate-800 hover:bg-slate-800/30" data-testid={`earnings-row-${e.user_id}`}>
+                            <td className="py-3 px-4 font-medium">{e.user_name}</td>
+                            <td className="py-3 px-4 text-right text-slate-400">{e.total_hours}h</td>
+                            <td className="py-3 px-4 text-right text-slate-400">{e.job_count}</td>
+                            <td className="py-3 px-4 text-right text-orange-400">{e.akkord_earnings > 0 ? formatCurrency(e.akkord_earnings) : '-'}</td>
+                            <td className="py-3 px-4 text-right text-blue-400">{e.hourly_earnings > 0 ? formatCurrency(e.hourly_earnings) : '-'}</td>
+                            <td className="py-3 px-4 text-right font-bold text-green-400">{formatCurrency(e.total_earnings)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-slate-600">
+                          <td className="py-3 px-4 font-bold">Total</td>
+                          <td className="py-3 px-4 text-right font-bold">{earnings.reduce((s, e) => s + e.total_hours, 0)}h</td>
+                          <td className="py-3 px-4 text-right font-bold">{earnings.reduce((s, e) => s + e.job_count, 0)}</td>
+                          <td className="py-3 px-4 text-right font-bold text-orange-400">{formatCurrency(earnings.reduce((s, e) => s + e.akkord_earnings, 0))}</td>
+                          <td className="py-3 px-4 text-right font-bold text-blue-400">{formatCurrency(earnings.reduce((s, e) => s + e.hourly_earnings, 0))}</td>
+                          <td className="py-3 px-4 text-right font-bold text-green-400">{formatCurrency(earnings.reduce((s, e) => s + e.total_earnings, 0))}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
       </Tabs>
     </div>
   );
