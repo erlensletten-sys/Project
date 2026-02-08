@@ -389,6 +389,8 @@ export const nb = {
     groupSenderName: "Din organisasjons avsendernavn",
     groupSenderNameHint: "Dette navnet vil vises som 'Fra'-navnet når din organisasjon sender e-poster",
     globalSmtpNote: "SMTP-innstillinger deles på tvers av alle organisasjoner. Kun avsendernavnet kan tilpasses per organisasjon.",
+    companyLogo: "Firmalogo",
+    companyLogoHint: "Vises på fakturaer og e-poster",
   },
 
   // Work Log (Akkord)
