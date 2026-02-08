@@ -535,6 +535,18 @@ async def require_member_or_above(request: Request) -> dict:
         raise HTTPException(status_code=403, detail="Member access or above required")
     return user
 
+SUPER_ADMIN_EMAIL = "erlen.sletten@gmail.com"
+
+async def require_super_admin(request: Request) -> dict:
+    """Require super admin (specific email)"""
+    user = await require_auth(request)
+    if user["email"] != SUPER_ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Super admin access required")
+    return user
+
+def is_super_admin(user: dict) -> bool:
+    return user.get("email") == SUPER_ADMIN_EMAIL
+
 def has_permission(user_role: str, permission: str) -> bool:
     """Check if a role has a specific permission"""
     if user_role == "owner":
