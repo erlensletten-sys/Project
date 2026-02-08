@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Building2, Users, UserPlus, Loader2, Copy, Check, Mail, Globe, CheckCircle, XCircle, Save, Edit, Palette, Sun, Moon, Clock, MoreVertical, UserCog, Power, Eye, EyeOff, Shield, Briefcase, User } from 'lucide-react';
+import { Building2, Users, UserPlus, Loader2, Copy, Check, Mail, Globe, CheckCircle, XCircle, Save, Edit, Palette, Sun, Moon, Clock, MoreVertical, UserCog, Power, Eye, EyeOff, Shield, Briefcase, User, Square, Trash2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
