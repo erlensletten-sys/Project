@@ -92,6 +92,15 @@ export default function SettingsPage() {
   const [akkordEnabled, setAkkordEnabled] = useState(true);
   const [savingRate, setSavingRate] = useState(false);
   
+  // Akkord price management
+  const [basePrices, setBasePrices] = useState({});
+  const [addonPrices, setAddonPrices] = useState({});
+  const [savingPrices, setSavingPrices] = useState(false);
+  const [newUnitName, setNewUnitName] = useState('');
+  const [newUnitPrice, setNewUnitPrice] = useState('');
+  const [newAddonName, setNewAddonName] = useState('');
+  const [newAddonPrice, setNewAddonPrice] = useState('');
+  
   // User management
   const [editingUser, setEditingUser] = useState(null);
   const [updatingRole, setUpdatingRole] = useState(false);
