@@ -2697,9 +2697,13 @@ async def update_group_settings(request: Request, settings: GroupSettingsUpdate)
     """Update group settings (admin only)"""
     user = await require_admin(request)
     
+    update_fields = {"hourly_rate": settings.hourly_rate, "updated_at": datetime.now(timezone.utc)}
+    if settings.akkord_enabled is not None:
+        update_fields["akkord_enabled"] = settings.akkord_enabled
+    
     await db.groups.update_one(
         {"group_id": user["group_id"]},
-        {"$set": {"hourly_rate": settings.hourly_rate, "updated_at": datetime.now(timezone.utc)}}
+        {"$set": update_fields}
     )
     
     return {"ok": True, "message": "Group settings updated"}
