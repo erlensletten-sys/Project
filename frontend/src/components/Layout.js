@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   Building2,
-  HardHat
+  HardHat,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
