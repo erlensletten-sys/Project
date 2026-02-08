@@ -25,17 +25,28 @@ export default function Layout({ children }) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const navItems = [
-    { path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
-    { path: '/invoices', label: t('nav.invoices'), icon: FileText },
-    { path: '/payroll', label: t('nav.payroll'), icon: Users },
-    { path: '/expenses', label: t('nav.expenses'), icon: Receipt },
-    { path: '/projects', label: t('nav.projects'), icon: FolderKanban },
-    { path: '/work-log', label: t('nav.workLog'), icon: HardHat },
-    { path: '/checklists', label: t('nav.checklists'), icon: ClipboardCheck },
-    { path: '/hse', label: t('nav.hseDocuments'), icon: ShieldCheck },
-    { path: '/settings', label: t('nav.settings'), icon: Settings },
+  const role = user?.role;
+  const isAdminOrOwner = role === 'admin' || role === 'owner';
+  const isHrOrAbove = isAdminOrOwner || role === 'hr';
+
+  const allNavItems = [
+    { path: '/', label: t('nav.dashboard'), icon: LayoutDashboard, roles: 'all' },
+    { path: '/invoices', label: t('nav.invoices'), icon: FileText, roles: 'admin' },
+    { path: '/payroll', label: t('nav.payroll'), icon: Users, roles: 'hr' },
+    { path: '/expenses', label: t('nav.expenses'), icon: Receipt, roles: 'all' },
+    { path: '/projects', label: t('nav.projects'), icon: FolderKanban, roles: 'all' },
+    { path: '/work-log', label: t('nav.workLog'), icon: HardHat, roles: 'all' },
+    { path: '/checklists', label: t('nav.checklists'), icon: ClipboardCheck, roles: 'all' },
+    { path: '/hse', label: t('nav.hseDocuments'), icon: ShieldCheck, roles: 'all' },
+    { path: '/settings', label: t('nav.settings'), icon: Settings, roles: 'admin' },
   ];
+
+  const navItems = allNavItems.filter(item => {
+    if (item.roles === 'all') return true;
+    if (item.roles === 'admin') return isAdminOrOwner;
+    if (item.roles === 'hr') return isHrOrAbove;
+    return true;
+  });
 
   const handleLogout = async () => {
     await logout();
