@@ -463,7 +463,7 @@ export default function SettingsPage() {
                   onClick={() => setAccentColor(color)}
                   className={`w-12 h-12 rounded-lg transition-all ${
                     accentColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110' : 'hover:scale-105'
-                  }`}
+                  } ${color === 'black' ? 'border-2 border-slate-500' : ''}`}
                   style={{
                     backgroundColor: color === 'black' ? '#0f172a' :
                       color === 'green' ? '#22c55e' :
