@@ -23,6 +23,7 @@ import HSEPage from "@/pages/HSEPage";
 import SettingsPage from "@/pages/SettingsPage";
 import WorkLogPage from "@/pages/WorkLogPage";
 import ReportsPage from "@/pages/ReportsPage";
+import SuperAdminPage from "@/pages/SuperAdminPage";
 
 // Layout
 import Layout from "@/components/Layout";
