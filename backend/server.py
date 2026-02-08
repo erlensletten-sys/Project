@@ -685,14 +685,17 @@ async def send_email_smtp(to_email: str, subject: str, html_content: str, text_c
         part2 = MIMEText(html_content, "html")
         message.attach(part2)
         
-        # Send via SMTP
+        # Send via SMTP - use start_tls for port 587, use_tls for port 465
+        port = config.get("smtp_port", 587)
+        use_starttls = port == 587
         await aiosmtplib.send(
             message,
             hostname=config.get("smtp_host", ""),
-            port=config.get("smtp_port", 587),
+            port=port,
             username=config.get("smtp_user", ""),
             password=config.get("smtp_password", ""),
-            start_tls=config.get("smtp_use_tls", True)
+            start_tls=use_starttls,
+            use_tls=not use_starttls and config.get("smtp_use_tls", False)
         )
         
         logger.info(f"Email sent successfully to {to_email}")
