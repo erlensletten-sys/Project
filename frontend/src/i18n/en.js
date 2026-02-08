@@ -68,6 +68,16 @@ export const en = {
     heroSubtitle: "Invoicing, payroll, projects, and HSE documentation - all in one place.",
     builtFor: "Built for Nordic businesses",
     builtForSubtitle: "Complete business management tailored for construction, field services, and SMBs.",
+    forgotPassword: "Forgot password?",
+    resetPassword: "Reset Password",
+    sendResetLink: "Send Reset Link",
+    backToLogin: "Back to login",
+    enterEmailForReset: "Enter your email address and we'll send you a link to reset your password.",
+    resetLinkSent: "If an account exists with this email, a reset link has been sent.",
+    newPassword: "New Password",
+    confirmNewPassword: "Confirm New Password",
+    passwordResetSuccess: "Password reset successfully. Please login with your new password.",
+    invalidResetToken: "Invalid or expired reset token",
   },
 
   // Dashboard
