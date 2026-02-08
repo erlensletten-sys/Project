@@ -187,7 +187,7 @@ export default function ChecklistsPage() {
   const openFillDialog = (form) => {
     setSelectedForm(form);
     setFormResponses({});
-    setSelectedProjectId('');
+    setSelectedProjectId('none');
     setFillDialogOpen(true);
   };
 
