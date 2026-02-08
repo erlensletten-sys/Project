@@ -633,7 +633,7 @@ export default function ChecklistsPage() {
                     <SelectValue placeholder={t('forms.selectProject')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">{t('forms.noProject')}</SelectItem>
+                    <SelectItem value="none">{t('forms.noProject')}</SelectItem>
                     {projects.map(proj => (
                       <SelectItem key={proj.project_id} value={proj.project_id}>
                         {proj.name}
