@@ -107,6 +107,13 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          {/* Download PDF Button */}
+          <a href={getInvoicePdfUrl(invoice.invoice_id)} target="_blank" rel="noopener noreferrer">
+            <Button data-testid="download-pdf-btn" variant="outline" className="border-slate-700 hover:bg-slate-800">
+              <FileDown size={16} className="mr-2" />
+              PDF
+            </Button>
+          </a>
           {/* Send Email Button */}
           <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
             <DialogTrigger asChild>
