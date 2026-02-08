@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/i18n';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Loader2, ArrowLeft, Building2, Shield, Zap, ChevronRight } from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Hero image for the visual panel
+const HERO_IMAGE = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80";
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const { login } = useAuth();
   const { t } = useLanguage();
   const [email, setEmail] = useState('');
@@ -19,150 +24,211 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+    
     try {
-      await login(email, password);
-      toast.success(t('auth.welcomeBack') + '!');
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.ok) {
+        login(data.user);
+        toast.success(t('auth.loginSuccess'));
+        navigate('/');
+      } else {
+        toast.error(data.detail || t('auth.invalidCredentials'));
+      }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(t('auth.loginFailed'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left side - Abstract illustration */}
-      <div 
-        className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-800 to-orange-900 relative overflow-hidden"
-      >
-        {/* Abstract geometric shapes */}
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-10 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-40 right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-orange-400/15 rounded-full blur-2xl"></div>
-          
-          {/* Grid pattern */}
-          <svg className="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid-login" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid-login)" />
-          </svg>
-          
-          {/* Decorative lines */}
-          <div className="absolute top-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-orange-500/30 to-transparent"></div>
-          <div className="absolute top-2/3 left-0 w-full h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent"></div>
-        </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen w-full overflow-hidden bg-[#020817]">
+      {/* Left Panel - Form */}
+      <div className="relative flex flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-24 py-12 h-full">
+        {/* Noise texture overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
+          }}
+        />
         
-        {/* Content */}
-        <div className="relative w-full h-full flex flex-col justify-end p-12 z-10">
-          {/* Icon/Logo */}
-          <div className="mb-8">
-            <div className="w-20 h-20 bg-orange-500/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-orange-500/30">
-              <Building2 className="text-orange-400" size={40} strokeWidth={1.5} />
+        {/* Back to home link */}
+        <Link 
+          to="/" 
+          className="absolute top-8 left-8 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+          data-testid="back-home-link"
+        >
+          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+          <span className="text-sm font-medium">Home</span>
+        </Link>
+
+        <div className="w-full max-w-md mx-auto space-y-8 relative z-10">
+          {/* Logo & Brand */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-green-500" />
+              </div>
+              <span className="text-xl font-semibold text-white tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+                ProjectDash
+              </span>
             </div>
+            
+            <h1 
+              className="text-4xl md:text-5xl font-bold text-white tracking-tight"
+              style={{ fontFamily: 'Space Grotesk, sans-serif' }}
+            >
+              Welcome back
+            </h1>
+            <p className="text-slate-400 text-lg">
+              Enter your credentials to access your workspace.
+            </p>
           </div>
-          
-          <h2 className="heading text-4xl font-bold text-white mb-4">
-            {t('auth.heroTitle')}
-          </h2>
-          <p className="text-slate-300 text-lg max-w-md">
-            {t('auth.heroSubtitle')}
-          </p>
+
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-slate-300">
+                Email address
+              </Label>
+              <Input
+                id="email"
+                data-testid="login-email-input"
+                type="email"
+                placeholder="name@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="h-12 bg-slate-900/50 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all duration-200"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-sm font-medium text-slate-300">
+                  Password
+                </Label>
+                <Link 
+                  to="/forgot-password" 
+                  className="text-sm text-green-500 hover:text-green-400 transition-colors"
+                  data-testid="forgot-password-link"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                data-testid="login-password-input"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="h-12 bg-slate-900/50 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all duration-200"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              data-testid="login-submit-btn"
+              className="h-12 w-full bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign in
+                  <ChevronRight className="ml-2 h-5 w-5" />
+                </>
+              )}
+            </Button>
+          </form>
+
+          {/* Register Link */}
+          <div className="pt-6 border-t border-slate-800">
+            <p className="text-center text-slate-400">
+              Don't have an account?{' '}
+              <Link 
+                to="/register" 
+                className="text-green-500 hover:text-green-400 font-medium transition-colors"
+                data-testid="register-link"
+              >
+                Create organization
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Right side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-slate-900">
-        <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
-              <Building2 className="text-white" size={28} strokeWidth={1.5} />
+      {/* Right Panel - Visual */}
+      <div className="hidden lg:flex flex-col justify-between relative overflow-hidden">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${HERO_IMAGE})` }}
+        />
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#020817] via-[#020817]/70 to-[#020817]/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#020817]/50 to-transparent" />
+        
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-end h-full p-12">
+          {/* Trust Badges */}
+          <div className="flex gap-6 mb-8">
+            <div className="flex items-center gap-2 text-slate-300">
+              <div className="w-8 h-8 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center justify-center">
+                <Shield className="w-4 h-4 text-green-500" />
+              </div>
+              <span className="text-sm font-medium">Enterprise Security</span>
             </div>
-            <div>
-              <h1 className="heading text-2xl font-bold text-white">ProjectDash</h1>
-              <p className="text-slate-400 text-sm">Business Management Platform</p>
+            <div className="flex items-center gap-2 text-slate-300">
+              <div className="w-8 h-8 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center justify-center">
+                <Zap className="w-4 h-4 text-green-500" />
+              </div>
+              <span className="text-sm font-medium">99.9% Uptime</span>
             </div>
           </div>
 
-          <Card className="border-slate-700 bg-slate-800">
-            <CardHeader>
-              <CardTitle className="heading text-xl text-white">{t('auth.signIn')}</CardTitle>
-              <CardDescription className="text-slate-400">{t('auth.enterCredentials')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-200">{t('auth.email')}</Label>
-                  <Input
-                    id="email"
-                    data-testid="login-email-input"
-                    type="email"
-                    placeholder="name@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="h-11 bg-slate-700 border-slate-600"
-                  />
-                </div>
+          {/* Main Text */}
+          <h2 
+            className="text-4xl xl:text-5xl font-bold text-white mb-4 max-w-lg tracking-tight"
+            style={{ fontFamily: 'Space Grotesk, sans-serif' }}
+          >
+            Building the future of Nordic enterprise.
+          </h2>
+          <p className="text-xl text-slate-400 max-w-md">
+            Secure. Efficient. Reliable.
+          </p>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-slate-200">{t('auth.password')}</Label>
-                    <Link 
-                      to="/forgot-password" 
-                      className="text-xs text-orange-400 hover:text-orange-300"
-                    >
-                      {t('auth.forgotPassword')}
-                    </Link>
-                  </div>
-                  <Input
-                    id="password"
-                    data-testid="login-password-input"
-                    type="password"
-                    placeholder={t('auth.password')}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="h-11 bg-slate-700 border-slate-600"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  data-testid="login-submit-button"
-                  className="w-full h-11 bg-orange-500 hover:bg-orange-600"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('auth.signingIn')}
-                    </>
-                  ) : (
-                    t('auth.signIn')
-                  )}
-                </Button>
-              </form>
-
-              <div className="mt-6 text-center">
-                <p className="text-sm text-slate-400">
-                  {t('auth.noAccount')}{' '}
-                  <Link 
-                    to="/register" 
-                    data-testid="register-link"
-                    className="text-orange-500 hover:text-orange-600 font-medium"
-                  >
-                    {t('auth.signUp')}
-                  </Link>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Stats */}
+          <div className="flex gap-12 mt-12 pt-8 border-t border-slate-700/50">
+            <div>
+              <div className="text-3xl font-bold text-white" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>2,500+</div>
+              <div className="text-sm text-slate-400">Active businesses</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-white" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>50M+</div>
+              <div className="text-sm text-slate-400">Invoices processed</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-white" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>4.9/5</div>
+              <div className="text-sm text-slate-400">Customer rating</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
