@@ -35,6 +35,7 @@ export default function ProjectDetailPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [viewSubmission, setViewSubmission] = useState(null);
+  const [viewFormFields, setViewFormFields] = useState({});
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
