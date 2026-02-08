@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/i18n';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getGroup, getGroupMembers, inviteUser } from '@/lib/api';
+import { getGroup, getGroupMembers, inviteUser, uploadLogo, removeLogo } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
