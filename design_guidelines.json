@@ -1,156 +1,118 @@
 {
   "identity": {
-    "name": "NordicForge",
-    "persona": "E1: The Anti-AI Designer",
-    "tone": "Industrial, Precise, Trustworthy, Scandinavian Minimalist",
-    "description": "A unified business management platform merging construction field work with high-precision accounting. The aesthetic is 'Steel & Paper'—robust structure with clean documentation."
+    "persona": "E1 - The Anti-AI Designer",
+    "tone": "Dark Nordic Enterprise",
+    "philosophy": "Deep contrast, architectural precision, trustworthy minimalism"
   },
   "typography": {
-    "fonts": {
-      "heading": {
-        "family": "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
-        "weights": {
-          "normal": 500,
-          "bold": 700
-        },
-        "usage": "Use for all page titles, card headers, and metric values. Tracking should be tight (-0.02em)."
-      },
-      "body": {
-        "family": "Fira Sans, ui-sans-serif, system-ui, sans-serif",
-        "weights": {
-          "normal": 400,
-          "medium": 500
-        },
-        "usage": "Use for all paragraphs, labels, table data, and inputs."
-      },
-      "mono": {
-        "family": "SF Mono, Monaco, Consolas, Fira Mono, monospace",
-        "usage": "Use for invoice numbers, API keys, and financial tabular data alignment."
-      }
+    "font_family": {
+      "heading": "Space Grotesk, sans-serif",
+      "body": "Fira Sans, sans-serif",
+      "mono": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
     },
-    "scales": {
-      "h1": "text-3xl md:text-4xl font-bold tracking-tight",
-      "h2": "text-2xl font-semibold tracking-tight",
-      "h3": "text-xl font-medium tracking-tight",
-      "body": "text-sm leading-relaxed",
-      "caption": "text-xs text-muted-foreground",
-      "label": "text-xs font-medium uppercase tracking-wider text-muted-foreground"
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-bold tracking-tight",
+      "h2": "text-3xl font-semibold tracking-tight",
+      "h3": "text-2xl font-medium",
+      "body": "text-base leading-relaxed",
+      "caption": "text-sm text-slate-400"
     }
   },
   "colors": {
-    "theme_strategy": "Hybrid: Light Mode default for Data/Documents, Dark Mode optional. Default to Light Mode for initial build as per business standard.",
-    "palette": {
-      "primary": {
-        "default": "#0F172A",
-        "foreground": "#F8FAFC",
-        "description": "Deep Nordic Navy. Use for Sidebar, Main Headers, and Primary Branding."
-      },
-      "accent": {
-        "default": "#FF4500",
-        "hover": "#E63E00",
-        "foreground": "#FFFFFF",
-        "description": "Safety Orange. MANDATORY for Primary Actions (Create, Save, Pay). High visibility."
-      },
-      "background": {
-        "light": "#F8FAFC",
-        "dark": "#0F0F10",
-        "description": "Slate-50 for Light Mode (Paper feel), Slate-950 for Dark Mode (Night Shift)."
-      },
-      "surface": {
-        "light": "#FFFFFF",
-        "dark": "#141416",
-        "description": "Pure white for cards in light mode. Contrast is key."
-      },
-      "border": {
-        "light": "#E2E8F0",
-        "dark": "#1F2937"
-      },
-      "status": {
-        "success": "#10B981",
-        "warning": "#F59E0B",
-        "error": "#EF4444",
-        "info": "#3B82F6"
-      }
+    "theme": "dark",
+    "background": {
+      "page": "#020817",
+      "surface": "#0f172a",
+      "glass": "rgba(15, 23, 42, 0.6)"
     },
-    "gradients": {
-      "forbidden": "No full-screen gradients. No gradient text.",
-      "allowed": "Subtle top-to-bottom fade on the Sidebar (Slate-900 to Slate-950)."
+    "text": {
+      "primary": "#f8fafc",
+      "secondary": "#94a3b8",
+      "accent": "#22c55e"
+    },
+    "primary": {
+      "default": "#22c55e",
+      "hover": "#16a34a",
+      "foreground": "#ffffff"
+    },
+    "border": {
+      "default": "#1e293b",
+      "active": "#22c55e"
     }
   },
-  "spacing_and_layout": {
-    "grid_system": "The Bento Grid (Mode B - High Density)",
-    "container": {
-      "max_width": "max-w-[1400px]",
-      "padding": "px-4 md:px-8 py-6"
-    },
-    "spacing_scale": {
+  "layout": {
+    "grid_system": "grid grid-cols-1 lg:grid-cols-2 h-screen w-full overflow-hidden",
+    "container": "flex flex-col justify-center px-8 sm:px-12 lg:px-24 xl:px-32 py-12 h-full relative z-10",
+    "visual_panel": "hidden lg:flex flex-col justify-between p-12 relative bg-slate-900 h-full w-full",
+    "spacing": {
       "section_gap": "gap-8",
-      "widget_gap": "gap-4",
-      "internal_padding": "p-5"
-    },
-    "radius": {
-      "default": "rounded-md",
-      "button": "rounded-md",
-      "card": "rounded-lg"
+      "input_gap": "space-y-4"
     }
   },
   "components": {
-    "buttons": {
-      "primary": "bg-accent text-accent-foreground hover:bg-accent/90 shadow-sm font-medium",
-      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-      "ghost": "hover:bg-accent/10 hover:text-accent font-medium"
+    "input": {
+      "base": "h-12 bg-slate-900/50 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all duration-200",
+      "label": "text-sm font-medium text-slate-300 mb-2 block"
     },
-    "cards": {
-      "style": "bg-card text-card-foreground border shadow-sm",
-      "hover": "hover:shadow-md transition-shadow duration-200"
+    "button": {
+      "primary": "h-12 w-full bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all duration-300 transform hover:-translate-y-0.5",
+      "secondary": "h-12 w-full bg-transparent border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
     },
-    "inputs": {
-      "style": "h-9 bg-background border-input focus:ring-2 focus:ring-accent/20 rounded-md"
-    },
-    "tables": {
-      "style": "w-full text-sm",
-      "header": "bg-muted/50 font-medium text-muted-foreground h-10 text-left px-4",
-      "row": "border-b hover:bg-muted/50 transition-colors h-12 px-4",
-      "cell": "p-4 align-middle"
+    "card": {
+      "wrapper": "w-full max-w-md mx-auto space-y-8"
     }
   },
   "visual_enhancers": {
-    "texture": "Use a subtle noise texture (opacity 0.02) on the main background to reduce digital flatness.",
-    "borders": "Use 'divide-y' and 'border' utilities frequently. Structure is key for accounting.",
-    "empty_states": "Use minimalist outlined icons or ASCII-style representations for empty states. No cartoony illustrations."
+    "glassmorphism": "backdrop-blur-xl bg-slate-950/40 border border-slate-800/50",
+    "gradient_overlay": "absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent opacity-80",
+    "noise_texture": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")"
   },
-  "media": {
-    "image_urls": {
-      "hero_login": "https://images.unsplash.com/photo-1686309736748-7874eb5357ae?crop=entropy&cs=srgb&fm=jpg&q=85",
-      "organization_cover": "https://images.unsplash.com/photo-1766330977451-de1b64b5e641?crop=entropy&cs=srgb&fm=jpg&q=85",
-      "project_placeholder": "https://images.unsplash.com/photo-1721244654346-9be0c0129e36?crop=entropy&cs=srgb&fm=jpg&q=85",
-      "safety_module": "https://images.unsplash.com/photo-1768158988512-ad31657fe5b8?crop=entropy&cs=srgb&fm=jpg&q=85"
+  "image_urls": {
+    "login_hero": {
+      "url": "https://images.unsplash.com/photo-1553212362-0fe044d06762?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBub3JkaWMlMjBhcmNoaXRlY3R1cmUlMjBvZmZpY2UlMjBkYXJrJTIwbW9vZHl8ZW58MHx8fHwxNzcwNTE1NzU2fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Modern Nordic Concrete Architecture",
+      "category": "hero_background"
+    }
+  },
+  "page_specifics": {
+    "login": {
+      "heading": "Welcome back",
+      "subheading": "Enter your credentials to access your workspace.",
+      "visual_text": "Building the future of Nordic enterprise.",
+      "visual_subtext": "Secure. Efficient. Reliable."
     },
-    "icons": "Use 'lucide-react' for all UI icons. Stroke width 1.5px (Thin/Elegant)."
-  },
-  "motion": {
-    "reduced_motion": "Respect prefers-reduced-motion.",
-    "transitions": "transition-all duration-200 ease-out",
-    "hover_lift": "hover:-translate-y-[1px]"
+    "register": {
+      "heading": "Create an account",
+      "subheading": "Get started with ProjectDash today.",
+      "visual_text": "Join thousands of Nordic businesses.",
+      "visual_subtext": "Streamline your operations with our all-in-one platform."
+    }
   },
   "instructions_to_main_agent": [
-    "IMPERATIVE: Implement a 'Layout' component that handles the Sidebar and Topbar structure. Do not repeat navigation in every page.",
-    "IMPERATIVE: The 'Dashboard' must use a CSS Grid (Bento style). Do not just stack cards vertically.",
-    "IMPERATIVE: Use the 'Safety Orange' (#FF4500) SPARINGLY. Only for the most important button on the screen.",
-    "IMPERATIVE: For 'Invoices' and 'Payroll', strictly use Tables. Do not use Cards for list items.",
-    "IMPERATIVE: Ensure 'Light Mode' is the default appearance, but keep 'Dark Mode' classes available via the 'dark' class on HTML/Body.",
-    "IMPERATIVE: All financial data should be right-aligned in tables.",
-    "IMPERATIVE: Use 'Space Grotesk' for headers to give it that 'Technical/Blueprint' feel."
+    "Implement the 'Split Screen' layout for both Login and Register pages.",
+    "Use the provided architectural image for the right-hand panel (on desktop).",
+    "Ensure the 'noise_texture' is applied as a subtle overlay on the dark background to prevent banding.",
+    "Use 'Space Grotesk' for the main headings (Welcome back / Create account).",
+    "Input fields must have 'h-12' for better touch targets and a premium feel.",
+    "The primary button should have a 'glow' effect using shadow-green-500/30.",
+    "Include a 'Go back' or 'Home' link at the top left for better navigation.",
+    "Use 'sonner' for all form success/error notifications.",
+    "Ensure all interactive elements have 'data-testid' attributes (e.g., 'login-email-input', 'submit-button').",
+    "Maintain the Dark Mode default. Do not implement a light mode toggle for these specific pages unless global layout demands it."
   ],
   "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
-    "Don't make generic centered layouts.",
-    "Create depth through layered design elements.",
-    "Use glass-morphism effects with backdrop filters (12-24px blur) for sticky headers only.",
+    "You tend to converge toward generic outputs. Avoid this.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition (transition: all).",
+    "You MUST NOT center align the app container (.App { text-align: center; }).",
+    "NEVER use AI assistant Emoji characters like 🤖🧠 etc.",
     "Every interaction needs micro-animations - hover states, transitions.",
     "Use 2-3x more spacing than feels comfortable.",
-    "Subtle grain textures, noise overlays for backgrounds.",
-    "Prioritize using pre-existing components from src/components/ui.",
-    "Components MUST use named exports.",
-    "Use 'sonner' for toasts."
+    "Subtle grain textures and noise overlays are mandatory.",
+    "Use 'sonner' for toasts.",
+    "All interactive elements MUST include 'data-testid' attribute."
   ]
 }
