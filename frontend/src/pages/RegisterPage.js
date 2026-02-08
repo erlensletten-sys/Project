@@ -1,22 +1,26 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/i18n';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Loader2, ArrowLeft, Building2, Users, FileText, ClipboardCheck, ChevronRight } from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Hero image for the visual panel
+const HERO_IMAGE = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920&q=80";
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: '',
     groupName: ''
   });
   const [loading, setLoading] = useState(false);
@@ -27,201 +31,267 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-
+    
     if (formData.password.length < 8) {
       toast.error('Password must be at least 8 characters');
       return;
     }
-
+    
     setLoading(true);
-
+    
     try {
-      await register(formData.email, formData.password, formData.name, formData.groupName);
-      toast.success('Organization created successfully!');
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          group_name: formData.groupName
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.ok) {
+        login(data.user);
+        toast.success('Organization created successfully!');
+        navigate('/');
+      } else {
+        toast.error(data.detail || 'Registration failed');
+      }
     } catch (error) {
-      toast.error(error.message);
+      toast.error('Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const features = [
+    { icon: FileText, title: 'Invoicing', desc: 'Professional invoices in seconds' },
+    { icon: Users, title: 'Team Management', desc: 'Manage employees and payroll' },
+    { icon: ClipboardCheck, title: 'Checklists & HSE', desc: 'Compliance made simple' },
+  ];
+
   return (
-    <div className="min-h-screen flex">
-      {/* Left side - Abstract illustration */}
-      <div 
-        className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-800 to-orange-900 relative overflow-hidden"
-      >
-        {/* Abstract geometric shapes */}
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-10 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-40 right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-orange-400/15 rounded-full blur-2xl"></div>
-          
-          {/* Grid pattern */}
-          <svg className="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-          
-          {/* Decorative lines */}
-          <div className="absolute top-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-orange-500/30 to-transparent"></div>
-          <div className="absolute top-2/3 left-0 w-full h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent"></div>
-        </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen w-full overflow-hidden bg-[#020817]">
+      {/* Left Panel - Visual */}
+      <div className="hidden lg:flex flex-col justify-between relative overflow-hidden order-2 lg:order-1">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${HERO_IMAGE})` }}
+        />
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#020817] via-[#020817]/70 to-[#020817]/30" />
+        <div className="absolute inset-0 bg-gradient-to-l from-[#020817]/50 to-transparent" />
         
         {/* Content */}
-        <div className="relative w-full h-full flex flex-col justify-end p-12 z-10">
-          {/* Icon/Logo */}
-          <div className="mb-8">
-            <div className="w-20 h-20 bg-orange-500/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-orange-500/30">
-              <Building2 className="text-orange-400" size={40} strokeWidth={1.5} />
+        <div className="relative z-10 flex flex-col justify-end h-full p-12">
+          {/* Main Text */}
+          <h2 
+            className="text-4xl xl:text-5xl font-bold text-white mb-4 max-w-lg tracking-tight"
+            style={{ fontFamily: 'Space Grotesk, sans-serif' }}
+          >
+            Join thousands of Nordic businesses.
+          </h2>
+          <p className="text-xl text-slate-400 max-w-md mb-12">
+            Streamline your operations with our all-in-one platform.
+          </p>
+
+          {/* Features */}
+          <div className="space-y-4">
+            {features.map((feature, index) => (
+              <div 
+                key={index}
+                className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 max-w-md"
+              >
+                <div className="w-10 h-10 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <feature.icon className="w-5 h-5 text-green-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">{feature.title}</h3>
+                  <p className="text-sm text-slate-400">{feature.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Testimonial */}
+          <div className="mt-12 pt-8 border-t border-slate-700/50 max-w-md">
+            <p className="text-slate-300 italic mb-4">
+              "ProjectDash transformed how we manage our construction projects. The time we save on invoicing alone is incredible."
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-white font-semibold">
+                EL
+              </div>
+              <div>
+                <div className="font-medium text-white">Erik Larsen</div>
+                <div className="text-sm text-slate-400">CEO, Bygg & Anlegg AS</div>
+              </div>
             </div>
           </div>
-          
-          <h2 className="heading text-4xl font-bold text-white mb-4">
-            {t('auth.builtFor')}
-          </h2>
-          <p className="text-slate-300 text-lg max-w-md">
-            {t('auth.builtForSubtitle')}
-          </p>
         </div>
       </div>
 
-      {/* Right side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-slate-900">
-        <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
-              <Building2 className="text-white" size={28} strokeWidth={1.5} />
+      {/* Right Panel - Form */}
+      <div className="relative flex flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-24 py-12 h-full order-1 lg:order-2">
+        {/* Noise texture overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
+          }}
+        />
+        
+        {/* Back to home link */}
+        <Link 
+          to="/" 
+          className="absolute top-8 left-8 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+          data-testid="back-home-link"
+        >
+          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+          <span className="text-sm font-medium">Home</span>
+        </Link>
+
+        <div className="w-full max-w-md mx-auto space-y-8 relative z-10">
+          {/* Logo & Brand */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-green-500" />
+              </div>
+              <span className="text-xl font-semibold text-white tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+                ProjectDash
+              </span>
             </div>
-            <div>
-              <h1 className="heading text-2xl font-bold text-white">ProjectDash</h1>
-              <p className="text-slate-400 text-sm">Business Management Platform</p>
-            </div>
+            
+            <h1 
+              className="text-4xl md:text-5xl font-bold text-white tracking-tight"
+              style={{ fontFamily: 'Space Grotesk, sans-serif' }}
+            >
+              Create an account
+            </h1>
+            <p className="text-slate-400 text-lg">
+              Get started with ProjectDash today.
+            </p>
           </div>
 
-          <Card className="border-slate-700 bg-slate-800">
-            <CardHeader>
-              <CardTitle className="heading text-xl text-white">{t('auth.signUp')}</CardTitle>
-              <CardDescription className="text-slate-400">{t('auth.enterCredentials')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="groupName" className="text-slate-200">{t('auth.organizationName')}</Label>
-                  <Input
-                    id="groupName"
-                    name="groupName"
-                    data-testid="register-org-input"
-                    type="text"
-                    placeholder="Your Company AS"
-                    value={formData.groupName}
-                    onChange={handleChange}
-                    required
-                    className="h-11 bg-slate-700 border-slate-600"
-                  />
-                </div>
+          {/* Register Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="groupName" className="text-sm font-medium text-slate-300">
+                Organization name
+              </Label>
+              <Input
+                id="groupName"
+                name="groupName"
+                data-testid="register-org-input"
+                type="text"
+                placeholder="Acme Construction AS"
+                value={formData.groupName}
+                onChange={handleChange}
+                required
+                className="h-12 bg-slate-900/50 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all duration-200"
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-200">{t('auth.yourName')}</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    data-testid="register-name-input"
-                    type="text"
-                    placeholder="John Doe"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="h-11 bg-slate-700 border-slate-600"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium text-slate-300">
+                Your full name
+              </Label>
+              <Input
+                id="name"
+                name="name"
+                data-testid="register-name-input"
+                type="text"
+                placeholder="John Doe"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="h-12 bg-slate-900/50 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all duration-200"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-slate-300">
+                Work email
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                data-testid="register-email-input"
+                type="email"
+                placeholder="john@company.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="h-12 bg-slate-900/50 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all duration-200"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-slate-300">
+                Password
+              </Label>
+              <Input
+                id="password"
+                name="password"
+                data-testid="register-password-input"
+                type="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength={8}
+                className="h-12 bg-slate-900/50 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all duration-200"
+              />
+              <p className="text-xs text-slate-500">Minimum 8 characters</p>
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-200">{t('auth.email')}</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    data-testid="register-email-input"
-                    type="email"
-                    placeholder="name@company.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="h-11 bg-slate-700 border-slate-600"
-                  />
-                </div>
+            <Button
+              type="submit"
+              disabled={loading}
+              data-testid="register-submit-btn"
+              className="h-12 w-full bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mt-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Creating organization...
+                </>
+              ) : (
+                <>
+                  Create organization
+                  <ChevronRight className="ml-2 h-5 w-5" />
+                </>
+              )}
+            </Button>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-200">{t('auth.password')}</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    data-testid="register-password-input"
-                    type="password"
-                    placeholder={t('auth.password')}
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    className="h-11 bg-slate-700 border-slate-600"
-                  />
-                </div>
+            <p className="text-xs text-slate-500 text-center">
+              By creating an account, you agree to our{' '}
+              <a href="#" className="text-green-500 hover:underline">Terms of Service</a>
+              {' '}and{' '}
+              <a href="#" className="text-green-500 hover:underline">Privacy Policy</a>
+            </p>
+          </form>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-slate-200">{t('auth.confirmPassword')}</Label>
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    data-testid="register-confirm-password-input"
-                    type="password"
-                    placeholder={t('auth.confirmPassword')}
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    required
-                    className="h-11 bg-slate-700 border-slate-600"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  data-testid="register-submit-button"
-                  className="w-full h-11 bg-orange-500 hover:bg-orange-600"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('auth.creatingOrg')}
-                    </>
-                  ) : (
-                    t('auth.signUp')
-                  )}
-                </Button>
-              </form>
-
-              <div className="mt-6 text-center">
-                <p className="text-sm text-slate-400">
-                  {t('auth.haveAccount')}{' '}
-                  <Link 
-                    to="/login" 
-                    data-testid="login-link"
-                    className="text-orange-500 hover:text-orange-600 font-medium"
-                  >
-                    {t('auth.signIn')}
-                  </Link>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Login Link */}
+          <div className="pt-6 border-t border-slate-800">
+            <p className="text-center text-slate-400">
+              Already have an account?{' '}
+              <Link 
+                to="/login" 
+                className="text-green-500 hover:text-green-400 font-medium transition-colors"
+                data-testid="login-link"
+              >
+                Sign in
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
