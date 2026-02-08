@@ -9,64 +9,48 @@ Small to medium-sized businesses in Norway and Nordic countries.
 ## Core Features
 
 ### 1. Authentication & Multi-tenancy
-- Username/password authentication
-- Password Reset via Email (Brevo SMTP)
+- Username/password authentication, Password Reset via Email (Brevo SMTP)
 - Multi-tenant architecture with isolated "Groups"
 - Role-based access control (Owner, Admin, HR, Member, Employee)
 
 ### 2. User Management
-- **Role Hierarchy:**
-  - **Owner**: Full access to all features
-  - **Admin**: Manage users, settings, forms, projects, invoices
-  - **HR**: Manage employees, view payroll, approve expenses
-  - **Member**: Create invoices, manage projects, basic access
-  - **Employee**: View projects, fill checklists, add expenses, log work
-- **User Operations:** Create, invite (with email), edit roles, deactivate/reactivate
-- **Payroll Sync:** Creating/inviting a user auto-creates an employee record for payroll
+- Owner > Admin > HR > Member > Employee hierarchy
+- Create, invite (with email), edit roles, deactivate/reactivate
+- Payroll Sync: Creating/inviting a user auto-creates employee record
 
 ### 3. Dashboard Analytics
-- Admin/Owner/HR: Financial margins, revenue vs costs, top producers
-- Employee: Personal earnings, hours, area completed, averages, median income
+- Admin/Owner/HR: Financial margins, revenue vs costs
+- Employee: Personal earnings, hours, area
 
 ### 4. Work Log (Akkord + Hourly)
-- **Akkord (Piece-Rate)**: Configurable per group (enable/disable toggle in Settings)
-- **Hourly**: Always available, configurable hourly rate
-- **Payment Sharing**: Total payment proportionally distributed by worker hours
-  - Formula: `worker_payment = (worker_hours / total_hours) * total_payment`
-- Per-employee hour logging with earnings calculation displayed in table
+- Akkord (Piece-Rate): Configurable per group (enable/disable toggle)
+- Hourly: Always available, configurable hourly rate
+- Payment Sharing: `worker_payment = (worker_hours / total_hours) * total_payment`
 
-### 5. Invoicing, Payroll, Expenses, Projects, HSE, Forms
-- Full CRUD for all modules
-- Invoice email sending via SMTP
-- Form Builder with dynamic fields and PDF export
+### 5. Projects
+- Full CRUD with tasks (To Do / Completed)
+- **Checklists tab**: Shows form submissions linked to the project with detail view
+
+### 6. Invoicing, Payroll, Expenses, HSE, Forms
+- Full CRUD, invoice email sending, form builder with PDF export
 - HSE document management with file uploads
 
-### 6. Settings & Configuration
-- **Work Log Settings**: Akkord toggle, hourly rate
-- Global SMTP, per-group sender name
-- Theme (Dark/Light + accent colors including Black)
-- Language (English/Norwegian)
+### 7. Settings
+- Akkord toggle, hourly rate, SMTP config, theme, language
 
-## Technical Architecture
-- **Backend**: FastAPI + MongoDB (Motor async driver)
-- **Frontend**: React 18 + TailwindCSS + Shadcn/UI
-- **Email**: Brevo SMTP integration
-- **Auth**: Session-based (cookies)
-
-## Completed Features (All Verified)
-- [x] User authentication (Register/Login/Password Reset)
+## Completed Features
+- [x] User auth (Register/Login/Password Reset) with Brevo SMTP
 - [x] Multi-tenant group management
 - [x] Dashboard with role-based analytics
-- [x] Invoicing module with email sending
+- [x] Invoicing with email sending
 - [x] Payroll module
 - [x] Expenses with receipt upload
-- [x] Projects management with tasks
+- [x] Projects with tasks
 - [x] HSE Documents with file upload
 - [x] Form Builder with PDF export
 - [x] Theme system (Dark/Light + 6 accent colors)
-- [x] Global SMTP + per-group sender name
 - [x] Language selection (English/Norwegian)
-- [x] Work Log (Akkord + Hourly + per-employee hours)
+- [x] Work Log (Akkord + Hourly)
 - [x] User Management with all roles
 - [x] Role-based permissions (frontend + backend) - Feb 2026
 - [x] Form fillability fix - Feb 2026
@@ -74,8 +58,9 @@ Small to medium-sized businesses in Norway and Nordic countries.
 - [x] User creation syncs to payroll employees - Feb 2026
 - [x] Invitation emails with credentials - Feb 2026
 - [x] Invoice sending via SMTP fixed - Feb 2026
-- [x] **Akkord Enable/Disable per Group** - Feb 2026
-- [x] **Akkord Payment Sharing (proportional by hours)** - Feb 2026
+- [x] Akkord Enable/Disable per Group - Feb 2026
+- [x] Akkord Payment Sharing (proportional by hours) - Feb 2026
+- [x] **Submitted Checklists in Project Detail (Tabs)** - Feb 2026
 
 ## In Progress
 - [ ] Professional Login/Register page redesign (with undraw.co illustrations)
@@ -88,6 +73,7 @@ Small to medium-sized businesses in Norway and Nordic countries.
 - [ ] Mobile-responsive improvements
 
 ## Test Accounts
-- **Admin/Owner**: testadmin@test.com / TestPass123!
-- **Employee**: employee@test.com / TestPass123!
-- **Test Project**: prj_868390aa0a4a
+- Admin/Owner: testadmin@test.com / TestPass123!
+- Employee: employee@test.com / TestPass123!
+- Test Project: prj_868390aa0a4a
+- Test Form: frm_44821bc2e793
