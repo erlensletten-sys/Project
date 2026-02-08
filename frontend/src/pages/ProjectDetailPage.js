@@ -97,6 +97,22 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleViewSubmission = async (sub) => {
+    if (viewSubmission?.submission_id === sub.submission_id) {
+      setViewSubmission(null);
+      return;
+    }
+    setViewSubmission(sub);
+    try {
+      const form = await getFormTemplate(sub.form_id);
+      const fieldMap = {};
+      (form.fields || []).forEach(f => { fieldMap[f.field_id] = f.label; });
+      setViewFormFields(fieldMap);
+    } catch {
+      setViewFormFields({});
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
