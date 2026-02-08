@@ -1528,7 +1528,7 @@ async def update_invoice_status(request: Request, invoice_id: str, status: str):
 @api_router.get("/employees", response_model=List[EmployeeResponse])
 async def list_employees(request: Request, status: Optional[str] = None):
     """List all employees for the group"""
-    user = await require_auth(request)
+    user = await require_hr_or_admin(request)
     
     query = {"group_id": user["group_id"]}
     if status:
