@@ -2999,6 +2999,10 @@ async def create_work_log(request: Request, work: WorkLogCreate):
     total_payment = 0
     
     if work.work_type == "akkord":
+        # Check if akkord is enabled for this group
+        if not group.get("akkord_enabled", True):
+            raise HTTPException(status_code=400, detail="Akkord payment is disabled for this group")
+        
         # Validate base operation for akkord work
         if not work.base_operation or work.base_operation not in AKKORD_BASE_PRICES:
             raise HTTPException(status_code=400, detail=f"Invalid base operation. Must be one of: {list(AKKORD_BASE_PRICES.keys())}")
