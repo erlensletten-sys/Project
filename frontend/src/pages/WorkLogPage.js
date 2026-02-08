@@ -258,10 +258,26 @@ export default function WorkLogPage() {
     : allLogs;
 
   // Calculate totals for my logs
+  // Helper to get current user's payment from a work log
+  const getMyPayment = (log) => {
+    if (!user) return 0;
+    const myWorker = (log.workers || []).find(w => w.user_id === user.user_id);
+    if (myWorker) return myWorker.payment || 0;
+    // Fallback: if user is the only one, use total_payment
+    return log.total_payment || 0;
+  };
+
+  const getMyHours = (log) => {
+    if (!user) return log.total_hours || 0;
+    const myWorker = (log.workers || []).find(w => w.user_id === user.user_id);
+    if (myWorker) return myWorker.hours || 0;
+    return log.total_hours || 0;
+  };
+
   const myTotals = {
     area: filteredMyLogs.reduce((sum, log) => sum + (log.area || 0), 0),
-    hours: filteredMyLogs.reduce((sum, log) => sum + (log.total_hours || 0), 0),
-    payment: filteredMyLogs.reduce((sum, log) => sum + (log.total_payment || 0), 0)
+    hours: filteredMyLogs.reduce((sum, log) => sum + getMyHours(log), 0),
+    payment: filteredMyLogs.reduce((sum, log) => sum + getMyPayment(log), 0)
   };
 
   if (loading) {
