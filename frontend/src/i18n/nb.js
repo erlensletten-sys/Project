@@ -68,6 +68,16 @@ export const nb = {
     heroSubtitle: "Fakturering, lønn, prosjekter og HMS-dokumentasjon - alt på ett sted.",
     builtFor: "Bygget for nordiske bedrifter",
     builtForSubtitle: "Komplett forretningsadministrasjon skreddersydd for bygg, feltservice og SMB-er.",
+    forgotPassword: "Glemt passord?",
+    resetPassword: "Tilbakestill passord",
+    sendResetLink: "Send tilbakestillingslenke",
+    backToLogin: "Tilbake til innlogging",
+    enterEmailForReset: "Skriv inn e-postadressen din, så sender vi deg en lenke for å tilbakestille passordet.",
+    resetLinkSent: "Hvis en konto eksisterer med denne e-posten, er en tilbakestillingslenke sendt.",
+    newPassword: "Nytt passord",
+    confirmNewPassword: "Bekreft nytt passord",
+    passwordResetSuccess: "Passord tilbakestilt. Vennligst logg inn med ditt nye passord.",
+    invalidResetToken: "Ugyldig eller utløpt tilbakestillingstoken",
   },
 
   // Dashboard
