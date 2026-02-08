@@ -389,6 +389,8 @@ export const en = {
     groupSenderName: "Your Organization's Sender Name",
     groupSenderNameHint: "This name will appear as the 'From' name when your organization sends emails",
     globalSmtpNote: "SMTP settings are shared across all organizations. Only the sender name is customizable per organization.",
+    companyLogo: "Company Logo",
+    companyLogoHint: "Appears on invoices and emails",
   },
 
   // Work Log (Akkord/Piece-rate)
