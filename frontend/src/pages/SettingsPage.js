@@ -531,6 +531,43 @@ export default function SettingsPage() {
           <CardDescription className="text-slate-400">{t('settings.orgDetails')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Logo */}
+          {isAdmin && (
+            <div className="flex items-center gap-6 p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+              <div className="w-16 h-16 rounded-xl bg-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-600">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <Building2 size={24} className="text-slate-500" />
+                )}
+              </div>
+              <div className="flex-1">
+                <Label className="text-sm font-medium">{t('settings.companyLogo') || 'Company Logo'}</Label>
+                <p className="text-xs text-slate-500 mt-0.5">{t('settings.companyLogoHint') || 'Appears on invoices and emails'}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <input type="file" accept="image/*" ref={logoInputRef} className="hidden" onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploadingLogo(true);
+                    try {
+                      const res = await uploadLogo(file);
+                      setLogoUrl(res.logo_url);
+                      toast.success('Logo uploaded');
+                    } catch (err) { toast.error(err.message); }
+                    finally { setUploadingLogo(false); e.target.value = ''; }
+                  }} />
+                  <Button size="sm" variant="outline" className="border-slate-600 text-xs" disabled={uploadingLogo} onClick={() => logoInputRef.current?.click()} data-testid="upload-logo-btn">
+                    {uploadingLogo ? 'Uploading...' : logoUrl ? 'Change' : 'Upload'}
+                  </Button>
+                  {logoUrl && (
+                    <Button size="sm" variant="ghost" className="text-xs text-red-400 hover:text-red-300" onClick={async () => {
+                      try { await removeLogo(); setLogoUrl(null); toast.success('Logo removed'); } catch (e) { toast.error('Failed to remove logo'); }
+                    }} data-testid="remove-logo-btn">Remove</Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-slate-500">{t('settings.orgName')}</Label>
