@@ -731,7 +731,7 @@ export default function WorkLogPage() {
                               <div className="text-xs">
                                 {log.workers.map((w, i) => (
                                   <span key={i} className="block">
-                                    {w.user_name}: {w.hours}t ({w.share_percentage}%)
+                                    {w.user_name}: {w.hours}t ({w.share_percentage}%) - {formatCurrency(w.payment || 0)}
                                   </span>
                                 ))}
                               </div>
