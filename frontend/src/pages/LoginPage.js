@@ -8,8 +8,6 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft, Building2, Shield, Zap, ChevronRight } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
-
 // Hero image for the visual panel
 const HERO_IMAGE = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80";
 
