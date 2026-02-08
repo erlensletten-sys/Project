@@ -672,18 +672,18 @@ export default function WorkLogPage() {
                             <p className="text-slate-400">{formatCurrency(log.hourly_rate)}/t</p>
                           )}
                         </td>
-                        <td>{log.total_hours}t</td>
+                        <td>{getMyHours(log)}t</td>
                         <td>
                           {log.workers && log.workers.length > 0 ? (
                             <div className="text-xs">
                               {log.workers.map((w, i) => (
-                                <span key={i} className="block">{w.user_name}: {w.hours}t - {formatCurrency(w.payment || 0)}</span>
+                                <span key={i} className={`block ${w.user_id === user?.user_id ? 'text-green-400 font-medium' : ''}`}>{w.user_name}: {w.hours}t - {formatCurrency(w.payment || 0)}</span>
                               ))}
                             </div>
                           ) : '-'}
                         </td>
                         <td className="text-right font-mono font-medium text-green-400">
-                          {formatCurrency(log.total_payment)}
+                          {formatCurrency(getMyPayment(log))}
                         </td>
                         <td>
                           <Button
