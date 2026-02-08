@@ -70,9 +70,7 @@ export default function Layout({ children }) {
         <div className="p-6">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-              <Building2 className="text-white" size={24} strokeWidth={1.5} />
-            </div>
+            <img src="/logo.png" alt="ProjectDash" className="w-10 h-10 rounded-lg object-contain" />
             <div>
               <h1 className="heading text-white font-semibold text-lg">ProjectDash</h1>
               <p className="text-slate-400 text-xs">{user?.group_name}</p>
