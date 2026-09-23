@@ -52,7 +52,7 @@ class NordicForgeAPITester:
                     response_data = response.json()
                     print(f"   Response: {str(response_data)[:200]}...")
                     return True, response_data, response
-                except:
+                except Exception:
                     print(f"   Response: {response.text[:200]}")
                     return True, response.text, response
             else:
@@ -62,7 +62,7 @@ class NordicForgeAPITester:
                 try:
                     error_data = response.json()
                     print(f"   Error: {error_data}")
-                except:
+                except Exception:
                     print(f"   Response: {response.text[:200]}")
                 return False, None, response
 
@@ -571,7 +571,7 @@ class NordicForgeAPITester:
                 try:
                     error_data = response.json()
                     print(f"   Error: {error_data}")
-                except:
+                except Exception:
                     print(f"   Response: {response.text[:200]}")
                 return False, None
                 

@@ -512,6 +512,28 @@ async def require_auth(request: Request) -> dict:
     user = await get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Super admin bypasses all group restrictions
+    if user.get("email") == SUPER_ADMIN_EMAIL:
+        return user
+    
+    # Check if user's group is disabled or trial expired
+    group = await db.groups.find_one({"group_id": user["group_id"]}, {"_id": 0})
+    if group:
+        if group.get("is_disabled"):
+            raise HTTPException(status_code=403, detail="Your organization has been disabled by the platform administrator. Contact support.")
+        
+        if not group.get("is_verified", True):
+            trial_start = group.get("trial_started_at") or group.get("created_at")
+            if trial_start:
+                if isinstance(trial_start, str):
+                    trial_start = datetime.fromisoformat(trial_start)
+                if trial_start.tzinfo is None:
+                    trial_start = trial_start.replace(tzinfo=timezone.utc)
+                elapsed = datetime.now(timezone.utc) - trial_start
+                if elapsed > timedelta(hours=24):
+                    raise HTTPException(status_code=403, detail="Your 24-hour trial has expired. Please wait for platform administrator verification.")
+    
     return user
 
 async def require_admin(request: Request) -> dict:
@@ -554,59 +576,97 @@ def has_permission(user_role: str, permission: str) -> bool:
     permissions = ROLE_PERMISSIONS.get(user_role, [])
     return permission in permissions or "*" in permissions
 
-# ============== File Upload Helpers ==============
+# ============== Emergent Object Storage Helpers ==============
 
-UPLOAD_DIR = Path("/app/uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
+import requests as sync_requests
+
+STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
+STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+APP_NAME = "projectdash"
+_storage_key = None
+
+def init_storage(force: bool = False):
+    global _storage_key
+    if _storage_key and not force:
+        return _storage_key
+    resp = sync_requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
+    resp.raise_for_status()
+    _storage_key = resp.json()["storage_key"]
+    return _storage_key
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    resp = sync_requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data, timeout=120
+    )
+    if resp.status_code == 404:
+        key = init_storage(force=True)
+        resp = sync_requests.put(
+            f"{STORAGE_URL}/objects/{path}",
+            headers={"X-Storage-Key": key, "Content-Type": content_type},
+            data=data, timeout=120
+        )
+    resp.raise_for_status()
+    return resp.json()
+
+def get_object(path: str) -> tuple:
+    key = init_storage()
+    resp = sync_requests.get(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key}, timeout=60
+    )
+    if resp.status_code == 404:
+        key = init_storage(force=True)
+        resp = sync_requests.get(
+            f"{STORAGE_URL}/objects/{path}",
+            headers={"X-Storage-Key": key}, timeout=60
+        )
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
 
 ALLOWED_EXTENSIONS = {'.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx', '.xls', '.xlsx'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 async def save_upload_file(file: UploadFile, group_id: str) -> dict:
-    """Save uploaded file and return file info"""
-    # Validate file extension
+    """Upload file to Emergent object storage and return file info"""
     file_ext = Path(file.filename).suffix.lower()
     if file_ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"File type {file_ext} not allowed")
     
-    # Read file content
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File too large (max 10MB)")
     
-    # Generate unique filename
     file_id = f"file_{uuid.uuid4().hex[:12]}"
     safe_filename = f"{file_id}{file_ext}"
+    storage_path = f"{APP_NAME}/uploads/{group_id}/{safe_filename}"
+    content_type = file.content_type or "application/octet-stream"
     
-    # Create group upload directory
-    group_dir = UPLOAD_DIR / group_id
-    group_dir.mkdir(exist_ok=True)
+    result = put_object(storage_path, content, content_type)
     
-    # Save file
-    file_path = group_dir / safe_filename
-    async with aiofiles.open(file_path, 'wb') as f:
-        await f.write(content)
-    
-    # Store file record in database
     file_doc = {
         "file_id": file_id,
         "group_id": group_id,
         "filename": file.filename,
         "safe_filename": safe_filename,
-        "content_type": file.content_type or "application/octet-stream",
+        "storage_path": result["path"],
+        "content_type": content_type,
         "size": len(content),
+        "is_deleted": False,
         "created_at": datetime.now(timezone.utc)
     }
     await db.files.insert_one(file_doc)
     
-    # Return file URL (relative to API)
     file_url = f"/api/files/{group_id}/{safe_filename}"
     
     return {
         "file_id": file_id,
         "file_url": file_url,
         "filename": file.filename,
-        "content_type": file_doc["content_type"],
+        "content_type": content_type,
         "size": len(content)
     }
 
@@ -726,24 +786,24 @@ async def send_email_smtp(to_email: str, subject: str, html_content: str, text_c
         return False
 
 def build_email_wrapper(content_html: str, group_name: str = "ProjectDash") -> str:
-    """Wrap email content in a professional HTML template"""
+    """Wrap email content in a dark-themed HTML template matching the app UI"""
     return f"""
     <html>
-    <body style="font-family: 'Segoe UI', -apple-system, sans-serif; margin: 0; padding: 0; background-color: #f1f5f9;">
+    <body style="font-family: 'Segoe UI', -apple-system, sans-serif; margin: 0; padding: 0; background-color: #0c1222;">
         <div style="max-width: 600px; margin: 0 auto; padding: 32px 16px;">
             <!-- Header -->
             <div style="text-align: center; padding: 24px 0 16px;">
                 <div style="display: inline-block; background: linear-gradient(135deg, #f97316, #ea580c); width: 40px; height: 40px; border-radius: 10px; line-height: 40px; text-align: center; color: white; font-weight: bold; font-size: 18px;">P</div>
-                <span style="display: inline-block; vertical-align: middle; margin-left: 10px; font-size: 20px; font-weight: 600; color: #0f172a;">ProjectDash</span>
+                <span style="display: inline-block; vertical-align: middle; margin-left: 10px; font-size: 20px; font-weight: 600; color: #f1f5f9;">ProjectDash</span>
             </div>
             <!-- Content Card -->
-            <div style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+            <div style="background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(15,23,42,0.98)); border-radius: 16px; overflow: hidden; border: 1px solid rgba(148,163,184,0.12); box-shadow: 0 8px 32px rgba(0,0,0,0.4);">
                 {content_html}
             </div>
             <!-- Footer -->
             <div style="text-align: center; padding: 24px 0 0;">
-                <p style="color: #94a3b8; font-size: 12px; margin: 0;">Sent by ProjectDash on behalf of {group_name}</p>
-                <p style="color: #cbd5e1; font-size: 11px; margin: 6px 0 0;">You received this email because of your account activity.</p>
+                <p style="color: #64748b; font-size: 12px; margin: 0;">Sent by ProjectDash on behalf of {group_name}</p>
+                <p style="color: #475569; font-size: 11px; margin: 6px 0 0;">You received this email because of your account activity.</p>
             </div>
         </div>
     </body>
@@ -751,15 +811,15 @@ def build_email_wrapper(content_html: str, group_name: str = "ProjectDash") -> s
     """
 
 def build_invoice_email_html(invoice: dict, group_name: str) -> str:
-    """Build HTML content for invoice email"""
+    """Build HTML content for invoice email (dark theme)"""
     items_html = ""
     for item in invoice.get("items", []):
         items_html += f"""
         <tr>
-            <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; color: #334155;">{item['description']}</td>
-            <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: center; color: #64748b;">{item['quantity']}</td>
-            <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #64748b;">{item['unit_price']:,.2f} kr</td>
-            <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: right; font-weight: 600; color: #334155;">{item['total']:,.2f} kr</td>
+            <td style="padding: 12px 16px; border-bottom: 1px solid rgba(148,163,184,0.1); color: #e2e8f0;">{item['description']}</td>
+            <td style="padding: 12px 16px; border-bottom: 1px solid rgba(148,163,184,0.1); text-align: center; color: #94a3b8;">{item['quantity']}</td>
+            <td style="padding: 12px 16px; border-bottom: 1px solid rgba(148,163,184,0.1); text-align: right; color: #94a3b8;">{item['unit_price']:,.2f} kr</td>
+            <td style="padding: 12px 16px; border-bottom: 1px solid rgba(148,163,184,0.1); text-align: right; font-weight: 600; color: #f1f5f9;">{item['total']:,.2f} kr</td>
         </tr>
         """
     
@@ -777,41 +837,41 @@ def build_invoice_email_html(invoice: dict, group_name: str) -> str:
             <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Invoice #{invoice.get('invoice_number')}</p>
         </div>
         <div style="padding: 32px;">
-            <p style="color: #334155; font-size: 15px; margin: 0 0 20px;">Dear {invoice.get('customer_name', 'Customer')},</p>
-            <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">Please find your invoice details below.</p>
+            <p style="color: #e2e8f0; font-size: 15px; margin: 0 0 20px;">Dear {invoice.get('customer_name', 'Customer')},</p>
+            <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">Please find your invoice details below.</p>
             
             <div style="display: flex; gap: 16px; margin-bottom: 24px;">
-                <div style="flex: 1; background: #f8fafc; border-radius: 10px; padding: 16px;">
-                    <p style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 4px;">Invoice No.</p>
-                    <p style="color: #0f172a; font-weight: 600; margin: 0;">{invoice.get('invoice_number')}</p>
+                <div style="flex: 1; background: rgba(30,41,59,0.6); border: 1px solid rgba(148,163,184,0.1); border-radius: 10px; padding: 16px;">
+                    <p style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 4px;">Invoice No.</p>
+                    <p style="color: #f1f5f9; font-weight: 600; margin: 0;">{invoice.get('invoice_number')}</p>
                 </div>
-                <div style="flex: 1; background: #f8fafc; border-radius: 10px; padding: 16px;">
-                    <p style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 4px;">Due Date</p>
-                    <p style="color: #0f172a; font-weight: 600; margin: 0;">{due_date_str}</p>
+                <div style="flex: 1; background: rgba(30,41,59,0.6); border: 1px solid rgba(148,163,184,0.1); border-radius: 10px; padding: 16px;">
+                    <p style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 4px;">Due Date</p>
+                    <p style="color: #f1f5f9; font-weight: 600; margin: 0;">{due_date_str}</p>
                 </div>
             </div>
             
             <table style="width: 100%; border-collapse: collapse; margin: 0 0 24px;">
                 <thead>
                     <tr>
-                        <th style="padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; border-bottom: 2px solid #f1f5f9;">Description</th>
-                        <th style="padding: 12px 16px; text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; border-bottom: 2px solid #f1f5f9;">Qty</th>
-                        <th style="padding: 12px 16px; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; border-bottom: 2px solid #f1f5f9;">Price</th>
-                        <th style="padding: 12px 16px; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; border-bottom: 2px solid #f1f5f9;">Total</th>
+                        <th style="padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; border-bottom: 2px solid rgba(148,163,184,0.15);">Description</th>
+                        <th style="padding: 12px 16px; text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; border-bottom: 2px solid rgba(148,163,184,0.15);">Qty</th>
+                        <th style="padding: 12px 16px; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; border-bottom: 2px solid rgba(148,163,184,0.15);">Price</th>
+                        <th style="padding: 12px 16px; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; border-bottom: 2px solid rgba(148,163,184,0.15);">Total</th>
                     </tr>
                 </thead>
                 <tbody>{items_html}</tbody>
             </table>
             
-            <div style="text-align: right; border-top: 2px solid #f1f5f9; padding-top: 16px;">
-                <p style="margin: 4px 0; color: #64748b; font-size: 14px;">Subtotal: <strong style="color: #334155;">{invoice.get('subtotal', 0):,.2f} kr</strong></p>
-                <p style="margin: 4px 0; color: #64748b; font-size: 14px;">VAT: <strong style="color: #334155;">{invoice.get('vat_total', 0):,.2f} kr</strong></p>
+            <div style="text-align: right; border-top: 2px solid rgba(148,163,184,0.15); padding-top: 16px;">
+                <p style="margin: 4px 0; color: #94a3b8; font-size: 14px;">Subtotal: <strong style="color: #e2e8f0;">{invoice.get('subtotal', 0):,.2f} kr</strong></p>
+                <p style="margin: 4px 0; color: #94a3b8; font-size: 14px;">VAT: <strong style="color: #e2e8f0;">{invoice.get('vat_total', 0):,.2f} kr</strong></p>
                 <p style="margin: 8px 0 0; font-size: 20px; color: #f97316; font-weight: 700;">{invoice.get('total', 0):,.2f} kr</p>
             </div>
             
-            {f'<div style="margin-top: 24px; padding: 16px; background: #fffbeb; border-radius: 10px; border-left: 4px solid #f59e0b;"><p style="margin: 0; color: #92400e; font-size: 13px;"><strong>Notes:</strong> {invoice.get("notes")}</p></div>' if invoice.get("notes") else ''}
+            {f'<div style="margin-top: 24px; padding: 16px; background: rgba(245,158,11,0.1); border-radius: 10px; border-left: 4px solid #f59e0b;"><p style="margin: 0; color: #fbbf24; font-size: 13px;"><strong>Notes:</strong> {invoice.get("notes")}</p></div>' if invoice.get("notes") else ''}
             
-            <p style="color: #94a3b8; font-size: 13px; margin: 32px 0 0;">Thank you for your business!<br><strong style="color: #64748b;">{group_name}</strong></p>
+            <p style="color: #64748b; font-size: 13px; margin: 32px 0 0;">Thank you for your business!<br><strong style="color: #94a3b8;">{group_name}</strong></p>
         </div>
     """
     return build_email_wrapper(content, group_name)
@@ -979,6 +1039,9 @@ async def register(request: RegisterRequest, response: Response):
         "name": request.group_name,
         "slug": group_slug,
         "owner_id": None,  # Will update after user creation
+        "is_verified": False,
+        "is_disabled": False,
+        "trial_started_at": datetime.now(timezone.utc),
         "created_at": datetime.now(timezone.utc)
     })
     
@@ -1161,14 +1224,14 @@ async def forgot_password(request_body: PasswordResetRequest):
     
     html_content = build_email_wrapper(f"""
         <div style="padding: 40px 32px; text-align: center;">
-            <div style="width: 56px; height: 56px; background: #fef3c7; border-radius: 50%; margin: 0 auto 20px; line-height: 56px; text-align: center;">
+            <div style="width: 56px; height: 56px; background: rgba(249,115,22,0.15); border-radius: 50%; margin: 0 auto 20px; line-height: 56px; text-align: center;">
                 <span style="font-size: 24px;">&#128274;</span>
             </div>
-            <h2 style="color: #0f172a; font-size: 22px; font-weight: 600; margin: 0 0 8px;">Password Reset</h2>
-            <p style="color: #64748b; font-size: 14px; margin: 0 0 24px;">Hello {user['name']}, you requested a password reset.</p>
-            <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0 0 32px;">Click the button below to choose a new password. This link expires in <strong style="color: #334155;">1 hour</strong>.</p>
+            <h2 style="color: #f1f5f9; font-size: 22px; font-weight: 600; margin: 0 0 8px;">Password Reset</h2>
+            <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px;">Hello {user['name']}, you requested a password reset.</p>
+            <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0 0 32px;">Click the button below to choose a new password. This link expires in <strong style="color: #e2e8f0;">1 hour</strong>.</p>
             <a href="{reset_url}" style="display: inline-block; background: linear-gradient(135deg, #f97316, #ea580c); color: white; padding: 14px 36px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px;">Reset Password</a>
-            <p style="color: #94a3b8; font-size: 12px; margin: 32px 0 0;">If you didn't request this, you can safely ignore this email.</p>
+            <p style="color: #64748b; font-size: 12px; margin: 32px 0 0;">If you didn't request this, you can safely ignore this email.</p>
         </div>
     """, "ProjectDash")
     
@@ -2549,29 +2612,25 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
 
 @api_router.get("/files/{group_id}/{filename}")
 async def get_file(group_id: str, filename: str, request: Request):
-    """Get an uploaded file"""
-    from fastapi.responses import FileResponse
-    
-    # Security: verify user has access to this group
+    """Get an uploaded file from Emergent object storage"""
     user = await get_current_user(request)
     if not user or user["group_id"] != group_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    file_path = UPLOAD_DIR / group_id / filename
-    
-    if not file_path.exists():
+    file_doc = await db.files.find_one({"safe_filename": filename, "is_deleted": {"$ne": True}}, {"_id": 0})
+    if not file_doc:
         raise HTTPException(status_code=404, detail="File not found")
     
-    # Get content type from database
-    file_doc = await db.files.find_one({"safe_filename": filename}, {"_id": 0})
-    content_type = file_doc.get("content_type", "application/octet-stream") if file_doc else "application/octet-stream"
+    storage_path = file_doc.get("storage_path", f"{APP_NAME}/uploads/{group_id}/{filename}")
+    content_type = file_doc.get("content_type", "application/octet-stream")
     
-    # Serve PDFs inline so they can be viewed in iframe
+    data, _ = get_object(storage_path)
+    
     headers = {}
     if content_type == "application/pdf":
         headers["Content-Disposition"] = f"inline; filename=\"{filename}\""
     
-    return FileResponse(file_path, media_type=content_type, headers=headers)
+    return Response(content=data, media_type=content_type, headers=headers)
 
 # ============== Invoice Email Endpoint ==============
 
@@ -3282,8 +3341,16 @@ async def startup_event():
     await db.form_templates.create_index("group_id")
     await db.form_submissions.create_index("group_id")
     await db.form_submissions.create_index("form_id")
+    await db.admin_activity_logs.create_index([("created_at", -1)])
     
     logger.info("Database indexes created")
+    
+    # Initialize Emergent object storage
+    try:
+        init_storage()
+        logger.info("Emergent object storage initialized")
+    except Exception as e:
+        logger.error(f"Storage init failed: {e}")
 
 # ============== Payment Summary Report ==============
 
@@ -3476,14 +3543,14 @@ async def upload_logo(request: Request, file: UploadFile = File(...)):
     if not file.content_type or not file.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail="File must be an image")
     
-    file_url = await save_upload_file(file, user["group_id"])
+    file_result = await save_upload_file(file, user["group_id"])
     
     await db.groups.update_one(
         {"group_id": user["group_id"]},
-        {"$set": {"logo_url": file_url, "updated_at": datetime.now(timezone.utc)}}
+        {"$set": {"logo_url": file_result["file_url"], "updated_at": datetime.now(timezone.utc)}}
     )
     
-    return {"ok": True, "logo_url": file_url}
+    return {"ok": True, "logo_url": file_result["file_url"]}
 
 @api_router.delete("/settings/logo")
 async def remove_logo(request: Request):
@@ -3565,6 +3632,8 @@ async def superadmin_stats(request: Request):
     banned_users = await db.users.count_documents({"is_banned": True})
     total_invoices = await db.invoices.count_documents({})
     total_work_logs = await db.work_logs.count_documents({})
+    pending_verification = await db.groups.count_documents({"is_verified": False})
+    disabled_groups = await db.groups.count_documents({"is_disabled": True})
     
     return {
         "groups": total_groups,
@@ -3572,7 +3641,9 @@ async def superadmin_stats(request: Request):
         "active_users": active_users,
         "banned_users": banned_users,
         "invoices": total_invoices,
-        "work_logs": total_work_logs
+        "work_logs": total_work_logs,
+        "pending_verification": pending_verification,
+        "disabled_groups": disabled_groups
     }
 
 @api_router.get("/superadmin/groups")
@@ -3582,21 +3653,38 @@ async def superadmin_list_groups(request: Request):
     
     groups = await db.groups.find({}, {"_id": 0}).to_list(1000)
     
+    now = datetime.now(timezone.utc)
     for g in groups:
         member_count = await db.users.count_documents({"group_id": g["group_id"]})
         g["member_count"] = member_count
         g["disabled_features"] = g.get("disabled_features", [])
+        g["is_verified"] = g.get("is_verified", True)
+        g["is_disabled"] = g.get("is_disabled", False)
+        
+        # Calculate trial status
+        trial_start = g.get("trial_started_at") or g.get("created_at")
+        if trial_start:
+            if isinstance(trial_start, str):
+                trial_start = datetime.fromisoformat(trial_start)
+            if trial_start.tzinfo is None:
+                trial_start = trial_start.replace(tzinfo=timezone.utc)
+            elapsed = now - trial_start
+            g["trial_hours_remaining"] = max(0, round((timedelta(hours=24) - elapsed).total_seconds() / 3600, 1))
+            g["trial_expired"] = elapsed > timedelta(hours=24)
+            g["created_at"] = trial_start.isoformat()
+        else:
+            g["trial_hours_remaining"] = 0
+            g["trial_expired"] = True
     
     return groups
 
 @api_router.put("/superadmin/groups/{group_id}/features")
 async def superadmin_toggle_features(request: Request, group_id: str):
     """Enable/disable features for a group"""
-    await require_super_admin(request)
+    admin = await require_super_admin(request)
     body = await request.json()
     
     disabled_features = body.get("disabled_features", [])
-    # Validate feature names
     for f in disabled_features:
         if f not in ALL_TOGGLEABLE_FEATURES:
             raise HTTPException(status_code=400, detail=f"Invalid feature: {f}")
@@ -3608,6 +3696,10 @@ async def superadmin_toggle_features(request: Request, group_id: str):
     
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Group not found")
+    
+    group = await db.groups.find_one({"group_id": group_id}, {"_id": 0, "name": 1})
+    await log_admin_activity(admin["user_id"], "toggle_features",
+                             f"Updated features for {group.get('name', group_id)}: disabled={disabled_features}", group_id=group_id)
     
     return {"ok": True, "disabled_features": disabled_features}
 
@@ -3637,10 +3729,12 @@ async def superadmin_list_users(request: Request, group_id: Optional[str] = None
 @api_router.put("/superadmin/users/{user_id}/ban")
 async def superadmin_ban_user(request: Request, user_id: str):
     """Ban or unban a user"""
-    await require_super_admin(request)
+    admin = await require_super_admin(request)
     body = await request.json()
     
     banned = body.get("banned", True)
+    
+    target = await db.users.find_one({"user_id": user_id}, {"_id": 0, "name": 1, "email": 1})
     
     result = await db.users.update_one(
         {"user_id": user_id},
@@ -3654,7 +3748,208 @@ async def superadmin_ban_user(request: Request, user_id: str):
     if banned:
         await db.user_sessions.delete_many({"user_id": user_id})
     
+    name = target.get("name", target.get("email", user_id)) if target else user_id
+    await log_admin_activity(admin["user_id"], "ban_user" if banned else "unban_user",
+                             f"{'Banned' if banned else 'Unbanned'} user: {name}", user_id=user_id)
+    
     return {"ok": True, "banned": banned}
+
+@api_router.put("/superadmin/groups/{group_id}/verify")
+async def superadmin_verify_group(request: Request, group_id: str):
+    """Verify or unverify a group"""
+    admin = await require_super_admin(request)
+    body = await request.json()
+    verified = body.get("verified", True)
+    
+    result = await db.groups.update_one(
+        {"group_id": group_id},
+        {"$set": {"is_verified": verified, "updated_at": datetime.now(timezone.utc)}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    group = await db.groups.find_one({"group_id": group_id}, {"_id": 0, "name": 1})
+    await log_admin_activity(admin["user_id"], "verify_group" if verified else "unverify_group", 
+                             f"{'Verified' if verified else 'Unverified'} group: {group.get('name', group_id)}", group_id=group_id)
+    return {"ok": True, "verified": verified}
+
+@api_router.put("/superadmin/groups/{group_id}/disable")
+async def superadmin_disable_group(request: Request, group_id: str):
+    """Disable or enable a group"""
+    admin = await require_super_admin(request)
+    body = await request.json()
+    disabled = body.get("disabled", True)
+    
+    result = await db.groups.update_one(
+        {"group_id": group_id},
+        {"$set": {"is_disabled": disabled, "updated_at": datetime.now(timezone.utc)}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    # If disabling, kill all user sessions in this group
+    if disabled:
+        group_users = await db.users.find({"group_id": group_id}, {"user_id": 1}).to_list(5000)
+        user_ids = [u["user_id"] for u in group_users]
+        if user_ids:
+            await db.user_sessions.delete_many({"user_id": {"$in": user_ids}})
+    
+    group = await db.groups.find_one({"group_id": group_id}, {"_id": 0, "name": 1})
+    await log_admin_activity(admin["user_id"], "disable_group" if disabled else "enable_group",
+                             f"{'Disabled' if disabled else 'Enabled'} group: {group.get('name', group_id)}", group_id=group_id)
+    return {"ok": True, "disabled": disabled}
+
+@api_router.post("/superadmin/impersonate/{user_id}")
+async def superadmin_impersonate(request: Request, user_id: str, response: Response):
+    """Impersonate a user (super admin only)"""
+    admin = await require_super_admin(request)
+    
+    target_user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Create impersonation session
+    session_token = secrets.token_hex(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=2)
+    
+    await db.user_sessions.insert_one({
+        "user_id": user_id,
+        "session_token": session_token,
+        "expires_at": expires_at,
+        "created_at": datetime.now(timezone.utc),
+        "impersonated_by": admin["user_id"]
+    })
+    
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/",
+        max_age=2 * 60 * 60
+    )
+    
+    group_doc = await db.groups.find_one({"group_id": target_user["group_id"]}, {"_id": 0, "name": 1})
+    
+    await log_admin_activity(admin["user_id"], "impersonate_user",
+                             f"Impersonated {target_user.get('name', target_user['email'])} ({target_user['email']})", user_id=user_id)
+    
+    return {
+        "ok": True,
+        "user": {
+            "user_id": target_user["user_id"],
+            "email": target_user["email"],
+            "name": target_user["name"],
+            "role": target_user["role"],
+            "group_id": target_user["group_id"],
+            "group_name": group_doc["name"] if group_doc else None,
+            "is_super_admin": target_user["email"] == SUPER_ADMIN_EMAIL,
+            "is_impersonated": True
+        }
+    }
+
+# ============== Admin Activity Logging ==============
+
+async def log_admin_activity(admin_user_id: str, action: str, details: str, group_id: str = None, user_id: str = None):
+    """Log an admin action for audit trail"""
+    await db.admin_activity_logs.insert_one({
+        "log_id": f"log_{uuid.uuid4().hex[:12]}",
+        "admin_user_id": admin_user_id,
+        "action": action,
+        "details": details,
+        "group_id": group_id,
+        "target_user_id": user_id,
+        "created_at": datetime.now(timezone.utc)
+    })
+
+@api_router.get("/superadmin/activity-logs")
+async def superadmin_activity_logs(request: Request, limit: int = 100, offset: int = 0):
+    """Get admin activity logs"""
+    await require_super_admin(request)
+    
+    logs = await db.admin_activity_logs.find(
+        {}, {"_id": 0}
+    ).sort("created_at", -1).skip(offset).limit(limit).to_list(limit)
+    
+    total = await db.admin_activity_logs.count_documents({})
+    
+    # Enrich with admin user name
+    admin_cache = {}
+    for log in logs:
+        aid = log.get("admin_user_id")
+        if aid and aid not in admin_cache:
+            admin_user = await db.users.find_one({"user_id": aid}, {"_id": 0, "name": 1, "email": 1})
+            admin_cache[aid] = admin_user.get("name", admin_user.get("email", "Unknown")) if admin_user else "Unknown"
+        log["admin_name"] = admin_cache.get(aid, "Unknown")
+    
+    return {"logs": logs, "total": total}
+
+# ============== CSV Export for Payroll Earnings ==============
+
+@api_router.get("/payroll/earnings/csv")
+async def export_payroll_earnings_csv(request: Request, month: int, year: int):
+    """Export payroll earnings as CSV"""
+    user = await require_hr_or_admin(request)
+    
+    start = datetime(year, month, 1, tzinfo=timezone.utc)
+    if month == 12:
+        end = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        end = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+    
+    work_logs = await db.work_logs.find({
+        "group_id": user["group_id"],
+        "date": {"$gte": start, "$lt": end}
+    }, {"_id": 0}).to_list(5000)
+    
+    earnings = {}
+    for log in work_logs:
+        for worker in log.get("workers", []):
+            uid = worker["user_id"]
+            if uid not in earnings:
+                earnings[uid] = {
+                    "user_name": worker.get("user_name", "Unknown"),
+                    "akkord_earnings": 0,
+                    "hourly_earnings": 0,
+                    "total_earnings": 0,
+                    "total_hours": 0,
+                    "job_count": 0
+                }
+            e = earnings[uid]
+            payment = worker.get("payment", 0)
+            e["total_earnings"] += payment
+            e["total_hours"] += worker.get("hours", 0)
+            e["job_count"] += 1
+            if log.get("work_type") == "akkord":
+                e["akkord_earnings"] += payment
+            else:
+                e["hourly_earnings"] += payment
+    
+    import io
+    import csv
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    writer.writerow(["Employee", "Akkord Earnings", "Hourly Earnings", "Total Earnings", "Total Hours", "Job Count"])
+    for e in sorted(earnings.values(), key=lambda x: x["user_name"]):
+        writer.writerow([
+            e["user_name"],
+            f"{e['akkord_earnings']:.2f}",
+            f"{e['hourly_earnings']:.2f}",
+            f"{e['total_earnings']:.2f}",
+            f"{e['total_hours']:.1f}",
+            e["job_count"]
+        ])
+    
+    csv_content = output.getvalue()
+    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    filename = f"earnings_{month_names[month-1]}_{year}.csv"
+    
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=\"{filename}\""}
+    )
 
 # ============== Enhanced Payroll (with Work Log Earnings) ==============
 

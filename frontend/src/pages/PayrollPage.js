@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/i18n';
-import { getEmployees, createEmployee, getPayrollRuns, createPayrollRun, updatePayrollRunStatus, formatCurrency, formatDate, getPayrollEarnings } from '@/lib/api';
+import { getEmployees, createEmployee, getPayrollRuns, createPayrollRun, updatePayrollRunStatus, formatCurrency, formatDate, getPayrollEarnings, getPayrollEarningsCsvUrl } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Users, Search, Loader2, Calendar, DollarSign, CheckCircle, Play } from 'lucide-react';
+import { Plus, Users, Search, Loader2, Calendar, DollarSign, CheckCircle, Play, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MONTHS = [
@@ -556,6 +556,31 @@ export default function PayrollPage() {
               className="w-24 h-10"
               data-testid="earnings-year"
             />
+            {earnings.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 border-slate-700"
+                data-testid="export-csv-btn"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(getPayrollEarningsCsvUrl(earningsMonth, earningsYear), { credentials: 'include' });
+                    if (!res.ok) throw new Error('Export failed');
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `earnings_${earningsMonth}_${earningsYear}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast.success('CSV exported');
+                  } catch { toast.error('Failed to export CSV'); }
+                }}
+              >
+                <Download size={14} className="mr-2" />
+                Export CSV
+              </Button>
+            )}
           </div>
 
           {loadingEarnings ? (

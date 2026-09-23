@@ -201,10 +201,25 @@ export const banUser = (userId, banned) =>
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ banned })
   });
+export const verifyGroup = (groupId, verified) =>
+  fetchAPI(`/api/superadmin/groups/${groupId}/verify`, {
+    method: 'PUT', body: JSON.stringify({ verified })
+  });
+export const disableGroup = (groupId, disabled) =>
+  fetchAPI(`/api/superadmin/groups/${groupId}/disable`, {
+    method: 'PUT', body: JSON.stringify({ disabled })
+  });
+export const impersonateUser = (userId) =>
+  fetchAPI(`/api/superadmin/impersonate/${userId}`, { method: 'POST' });
+export const getAdminActivityLogs = (limit = 100, offset = 0) =>
+  fetchAPI(`/api/superadmin/activity-logs?limit=${limit}&offset=${offset}`);
 
 // Payroll Earnings
 export const getPayrollEarnings = (month, year) =>
   fetchAPI(`/api/payroll/earnings?month=${month}&year=${year}`);
+
+export const getPayrollEarningsCsvUrl = (month, year) =>
+  `${API_URL}/api/payroll/earnings/csv?month=${month}&year=${year}`;
 
 // Invoice Email
 export const sendInvoice = (invoiceId, recipientEmail = null) =>
