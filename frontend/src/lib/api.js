@@ -213,6 +213,20 @@ export const impersonateUser = (userId) =>
   fetchAPI(`/api/superadmin/impersonate/${userId}`, { method: 'POST' });
 export const getAdminActivityLogs = (limit = 100, offset = 0) =>
   fetchAPI(`/api/superadmin/activity-logs?limit=${limit}&offset=${offset}`);
+export const getAnalyticsOverview = () =>
+  fetchAPI('/api/superadmin/analytics/overview');
+export const getGroupAnalytics = (groupId) =>
+  fetchAPI(`/api/superadmin/groups/${groupId}/analytics`);
+export const bulkVerifyGroups = (groupIds, verified) =>
+  fetchAPI('/api/superadmin/groups/bulk-verify', {
+    method: 'POST', body: JSON.stringify({ group_ids: groupIds, verified })
+  });
+export const bulkDisableGroups = (groupIds, disabled) =>
+  fetchAPI('/api/superadmin/groups/bulk-disable', {
+    method: 'POST', body: JSON.stringify({ group_ids: groupIds, disabled })
+  });
+export const getEmailPreview = (template = 'invite') =>
+  fetchAPI(`/api/settings/email/preview?template=${template}`);
 
 // Payroll Earnings
 export const getPayrollEarnings = (month, year) =>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/i18n';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getGroup, getGroupMembers, inviteUser, uploadLogo, removeLogo } from '@/lib/api';
+import { getGroup, getGroupMembers, inviteUser, uploadLogo, removeLogo, getEmailPreview } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,6 +77,12 @@ export default function SettingsPage() {
   });
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
+  
+  // Email preview
+  const [previewTemplate, setPreviewTemplate] = useState('invite');
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [loadingPreview, setLoadingPreview] = useState(false);
   
   // Group-specific sender name
   const [groupSenderName, setGroupSenderName] = useState('');
@@ -389,6 +395,17 @@ export default function SettingsPage() {
     } finally {
       setSendingTest(false);
     }
+  };
+
+  const handlePreviewEmail = async (template) => {
+    setPreviewTemplate(template);
+    setPreviewOpen(true);
+    setLoadingPreview(true);
+    try {
+      const data = await getEmailPreview(template);
+      setPreviewHtml(data.html);
+    } catch { toast.error('Failed to load preview'); }
+    finally { setLoadingPreview(false); }
   };
 
   const handleInvite = async (e) => {
@@ -1000,6 +1017,75 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Email Template Preview */}
+                <div className="pt-4 border-t border-slate-700">
+                  <Label className="mb-2 block">Email Template Preview</Label>
+                  <p className="text-xs text-slate-500 mb-3">Preview how your branded emails will look to recipients.</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-slate-600"
+                      onClick={() => handlePreviewEmail('invite')}
+                      data-testid="preview-invite-btn"
+                    >
+                      <Eye size={14} className="mr-2" />Invite Email
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-slate-600"
+                      onClick={() => handlePreviewEmail('reset')}
+                      data-testid="preview-reset-btn"
+                    >
+                      <Eye size={14} className="mr-2" />Password Reset
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Preview Modal */}
+                <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                  <DialogContent className="max-w-2xl bg-slate-900 border-slate-700 max-h-[85vh] flex flex-col">
+                    <DialogHeader>
+                      <DialogTitle className="heading flex items-center gap-2">
+                        <Mail size={18} />
+                        Email Preview — {previewTemplate === 'reset' ? 'Password Reset' : 'Invite'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex gap-2 pb-3 border-b border-slate-700">
+                      <Button
+                        size="sm"
+                        variant={previewTemplate === 'invite' ? 'default' : 'outline'}
+                        className={`h-7 text-xs ${previewTemplate === 'invite' ? 'bg-orange-500 hover:bg-orange-600' : 'border-slate-600'}`}
+                        onClick={() => handlePreviewEmail('invite')}
+                        data-testid="preview-tab-invite"
+                      >Invite</Button>
+                      <Button
+                        size="sm"
+                        variant={previewTemplate === 'reset' ? 'default' : 'outline'}
+                        className={`h-7 text-xs ${previewTemplate === 'reset' ? 'bg-orange-500 hover:bg-orange-600' : 'border-slate-600'}`}
+                        onClick={() => handlePreviewEmail('reset')}
+                        data-testid="preview-tab-reset"
+                      >Password Reset</Button>
+                    </div>
+                    <div className="flex-1 overflow-auto rounded-lg border border-slate-700">
+                      {loadingPreview ? (
+                        <div className="flex items-center justify-center h-40">
+                          <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+                        </div>
+                      ) : (
+                        <iframe
+                          srcDoc={previewHtml}
+                          title="Email Preview"
+                          className="w-full h-[500px] border-0 bg-white rounded"
+                          sandbox="allow-same-origin"
+                          data-testid="email-preview-iframe"
+                        />
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Per-Group Sender Name */}
                 <div className="pt-4 border-t border-slate-700">

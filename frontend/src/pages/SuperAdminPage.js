@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { getSuperAdminStats, getSuperAdminGroups, getSuperAdminUsers, toggleGroupFeatures, banUser, verifyGroup, disableGroup, impersonateUser, getAdminActivityLogs } from '@/lib/api';
+import React, { useState, useEffect, useMemo } from 'react';
+import { getSuperAdminStats, getSuperAdminGroups, getSuperAdminUsers, toggleGroupFeatures, banUser, verifyGroup, disableGroup, impersonateUser, getAdminActivityLogs, getAnalyticsOverview, bulkVerifyGroups, bulkDisableGroups } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Users, Building2, BarChart3, Search, Ban, CheckCircle, XCircle, Loader2, Clock, Power, UserCheck, Eye, Activity, AlertTriangle, Download } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Shield, Users, Building2, BarChart3, Search, Ban, CheckCircle, XCircle, Loader2, Clock, Power, UserCheck, Eye, Activity, FileText, Briefcase, ClipboardList, FolderOpen, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -23,16 +24,33 @@ const ALL_FEATURES = [
   { id: 'forms', label: 'Forms' },
 ];
 
+function StatCard({ icon: Icon, label, value, color }) {
+  return (
+    <Card className="card">
+      <CardContent className="p-3 text-center">
+        <Icon size={16} className={`mx-auto mb-1 text-${color}-500`} />
+        <p className="text-xl font-bold">{value}</p>
+        <p className="text-[10px] text-slate-500 uppercase tracking-wider">{label}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SuperAdminPage() {
   const { checkAuth } = useAuth();
   const [stats, setStats] = useState(null);
   const [groups, setGroups] = useState([]);
   const [users, setUsers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
+  const [analytics, setAnalytics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userSearch, setUserSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [saving, setSaving] = useState({});
+
+  // Bulk selection
+  const [selectedGroupIds, setSelectedGroupIds] = useState(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -45,6 +63,49 @@ export default function SuperAdminPage() {
     } catch (error) {
       toast.error('Failed to load admin data');
     } finally { setLoading(false); }
+  };
+
+  const loadAnalytics = async () => {
+    try {
+      const data = await getAnalyticsOverview();
+      setAnalytics(data);
+    } catch { toast.error('Failed to load analytics'); }
+  };
+
+  // Bulk selection helpers
+  const toggleGroupSelection = (groupId) => {
+    setSelectedGroupIds(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedGroupIds.size === groups.length) setSelectedGroupIds(new Set());
+    else setSelectedGroupIds(new Set(groups.map(g => g.group_id)));
+  };
+  const clearSelection = () => setSelectedGroupIds(new Set());
+
+  const handleBulkVerify = async (verified) => {
+    const ids = Array.from(selectedGroupIds);
+    setBulkLoading(true);
+    try {
+      const res = await bulkVerifyGroups(ids, verified);
+      toast.success(`${verified ? 'Verified' : 'Unverified'} ${res.modified} groups`);
+      clearSelection(); loadData();
+    } catch { toast.error('Bulk action failed'); }
+    finally { setBulkLoading(false); }
+  };
+  const handleBulkDisable = async (disabled) => {
+    const ids = Array.from(selectedGroupIds);
+    setBulkLoading(true);
+    try {
+      const res = await bulkDisableGroups(ids, disabled);
+      toast.success(`${disabled ? 'Disabled' : 'Enabled'} ${res.modified} groups`);
+      clearSelection(); loadData();
+    } catch { toast.error('Bulk action failed'); }
+    finally { setBulkLoading(false); }
   };
 
   const handleFeatureToggle = async (groupId, featureId, currentDisabled) => {
@@ -115,7 +176,7 @@ export default function SuperAdminPage() {
   const getGroupStatusBadge = (group) => {
     if (group.is_disabled) return <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[10px]">Disabled</Badge>;
     if (!group.is_verified && group.trial_expired) return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px]">Trial Expired</Badge>;
-    if (!group.is_verified) return <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]">Trial ({group.trial_hours_remaining}h left)</Badge>;
+    if (!group.is_verified) return <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]">Trial ({group.trial_hours_remaining}h)</Badge>;
     return <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-[10px]">Verified</Badge>;
   };
 
@@ -133,6 +194,10 @@ export default function SuperAdminPage() {
     if (action?.includes('feature')) return <BarChart3 size={12} className="text-blue-400" />;
     return <Activity size={12} className="text-slate-400" />;
   };
+
+  const analyticsSorted = useMemo(() =>
+    [...analytics].sort((a, b) => (b.work_logs + b.invoices) - (a.work_logs + a.invoices))
+  , [analytics]);
 
   if (loading) {
     return (
@@ -154,31 +219,21 @@ export default function SuperAdminPage() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats Row */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-          {[
-            { label: 'Groups', value: stats.groups, icon: Building2, color: 'blue' },
-            { label: 'Users', value: stats.users, icon: Users, color: 'green' },
-            { label: 'Active', value: stats.active_users, icon: CheckCircle, color: 'emerald' },
-            { label: 'Banned', value: stats.banned_users, icon: Ban, color: 'red' },
-            { label: 'Invoices', value: stats.invoices, icon: BarChart3, color: 'purple' },
-            { label: 'Work Logs', value: stats.work_logs, icon: BarChart3, color: 'orange' },
-            { label: 'Pending', value: stats.pending_verification, icon: Clock, color: 'amber' },
-            { label: 'Disabled', value: stats.disabled_groups, icon: Power, color: 'rose' },
-          ].map(s => (
-            <Card key={s.label} className="card">
-              <CardContent className="p-3 text-center">
-                <s.icon size={16} className={`mx-auto mb-1 text-${s.color}-500`} />
-                <p className="text-xl font-bold">{s.value}</p>
-                <p className="text-[10px] text-slate-500">{s.label}</p>
-              </CardContent>
-            </Card>
-          ))}
+          <StatCard icon={Building2} label="Groups" value={stats.groups} color="blue" />
+          <StatCard icon={Users} label="Users" value={stats.users} color="green" />
+          <StatCard icon={CheckCircle} label="Active" value={stats.active_users} color="emerald" />
+          <StatCard icon={Ban} label="Banned" value={stats.banned_users} color="red" />
+          <StatCard icon={FileText} label="Invoices" value={stats.invoices} color="purple" />
+          <StatCard icon={Briefcase} label="Work Logs" value={stats.work_logs} color="orange" />
+          <StatCard icon={Clock} label="Pending" value={stats.pending_verification} color="amber" />
+          <StatCard icon={Power} label="Disabled" value={stats.disabled_groups} color="rose" />
         </div>
       )}
 
-      <Tabs defaultValue="groups">
+      <Tabs defaultValue="groups" onValueChange={(v) => { if (v === 'analytics' && analytics.length === 0) loadAnalytics(); }}>
         <TabsList>
           <TabsTrigger value="groups" data-testid="admin-groups-tab">
             <Building2 size={14} className="mr-2" />Groups
@@ -186,32 +241,70 @@ export default function SuperAdminPage() {
           <TabsTrigger value="users" data-testid="admin-users-tab">
             <Users size={14} className="mr-2" />Users
           </TabsTrigger>
+          <TabsTrigger value="analytics" data-testid="admin-analytics-tab">
+            <TrendingUp size={14} className="mr-2" />Analytics
+          </TabsTrigger>
           <TabsTrigger value="activity" data-testid="admin-activity-tab">
             <Activity size={14} className="mr-2" />Activity
           </TabsTrigger>
         </TabsList>
 
-        {/* Groups Tab */}
+        {/* ── Groups Tab ── */}
         <TabsContent value="groups" className="space-y-4">
+          {/* Bulk Action Bar */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedGroupIds.size === groups.length && groups.length > 0}
+                onCheckedChange={toggleSelectAll}
+                data-testid="select-all-groups"
+              />
+              <span className="text-sm text-slate-400">
+                {selectedGroupIds.size > 0 ? `${selectedGroupIds.size} selected` : 'Select All'}
+              </span>
+            </div>
+            {selectedGroupIds.size > 0 && (
+              <div className="flex items-center gap-2 ml-auto animate-fadeIn">
+                {bulkLoading && <Loader2 size={14} className="animate-spin text-slate-400" />}
+                <Button size="sm" className="h-8 text-xs bg-green-600 hover:bg-green-700" disabled={bulkLoading} onClick={() => handleBulkVerify(true)} data-testid="bulk-verify-btn">
+                  <UserCheck size={12} className="mr-1" />Verify ({selectedGroupIds.size})
+                </Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={bulkLoading} onClick={() => handleBulkVerify(false)} data-testid="bulk-unverify-btn">
+                  <XCircle size={12} className="mr-1" />Unverify
+                </Button>
+                <Button size="sm" variant="destructive" className="h-8 text-xs" disabled={bulkLoading} onClick={() => handleBulkDisable(true)} data-testid="bulk-disable-btn">
+                  <Power size={12} className="mr-1" />Disable ({selectedGroupIds.size})
+                </Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={bulkLoading} onClick={() => handleBulkDisable(false)} data-testid="bulk-enable-btn">
+                  <CheckCircle size={12} className="mr-1" />Enable
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 text-xs text-slate-400" onClick={clearSelection}>Clear</Button>
+              </div>
+            )}
+          </div>
+
           {groups.map(group => (
-            <Card key={group.group_id} className={`card ${group.is_disabled ? 'opacity-60' : ''}`} data-testid={`group-card-${group.group_id}`}>
+            <Card key={group.group_id} className={`card transition-opacity ${group.is_disabled ? 'opacity-60' : ''}`} data-testid={`group-card-${group.group_id}`}>
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="min-w-0">
-                    <CardTitle className="heading text-base truncate">{group.name}</CardTitle>
-                    <p className="text-xs text-slate-500 mt-0.5">{group.group_id} | {group.member_count} members</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {getGroupStatusBadge(group)}
-                    <Badge variant="outline" className="text-[10px]">
-                      {(group.disabled_features || []).length > 0
-                        ? `${(group.disabled_features || []).length} off`
-                        : 'All on'}
-                    </Badge>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={selectedGroupIds.has(group.group_id)}
+                    onCheckedChange={() => toggleGroupSelection(group.group_id)}
+                    data-testid={`select-group-${group.group_id}`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="min-w-0">
+                        <CardTitle className="heading text-base truncate">{group.name}</CardTitle>
+                        <p className="text-xs text-slate-500 mt-0.5">{group.member_count} members</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {getGroupStatusBadge(group)}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                {/* Group Actions */}
-                <div className="flex gap-2 mt-3 flex-wrap">
+                <div className="flex gap-2 mt-3 flex-wrap pl-8">
                   <Button
                     size="sm"
                     variant={group.is_verified ? "outline" : "default"}
@@ -221,7 +314,7 @@ export default function SuperAdminPage() {
                     data-testid={`verify-btn-${group.group_id}`}
                   >
                     {saving[`verify-${group.group_id}`] ? <Loader2 size={12} className="animate-spin mr-1" /> : <UserCheck size={12} className="mr-1" />}
-                    {group.is_verified ? 'Revoke Verification' : 'Verify Group'}
+                    {group.is_verified ? 'Revoke' : 'Verify'}
                   </Button>
                   <Button
                     size="sm"
@@ -232,11 +325,11 @@ export default function SuperAdminPage() {
                     data-testid={`disable-btn-${group.group_id}`}
                   >
                     {saving[`disable-${group.group_id}`] ? <Loader2 size={12} className="animate-spin mr-1" /> : <Power size={12} className="mr-1" />}
-                    {group.is_disabled ? 'Enable Group' : 'Disable Group'}
+                    {group.is_disabled ? 'Enable' : 'Disable'}
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pl-11">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                   {ALL_FEATURES.map(feature => {
                     const isDisabled = (group.disabled_features || []).includes(feature.id);
@@ -264,7 +357,7 @@ export default function SuperAdminPage() {
           ))}
         </TabsContent>
 
-        {/* Users Tab */}
+        {/* ── Users Tab ── */}
         <TabsContent value="users" className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
@@ -289,7 +382,6 @@ export default function SuperAdminPage() {
               ))}
             </select>
           </div>
-
           <Card className="card">
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -325,10 +417,7 @@ export default function SuperAdminPage() {
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
                               disabled={saving[`imp-${u.user_id}`]}
                               onClick={() => handleImpersonate(u.user_id, u.name)}
                               data-testid={`impersonate-btn-${u.user_id}`}
@@ -336,10 +425,7 @@ export default function SuperAdminPage() {
                               {saving[`imp-${u.user_id}`] ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} className="mr-1" />}
                               View As
                             </Button>
-                            <Button
-                              size="sm"
-                              variant={u.is_banned ? "outline" : "destructive"}
-                              className="h-7 text-xs"
+                            <Button size="sm" variant={u.is_banned ? "outline" : "destructive"} className="h-7 text-xs"
                               disabled={saving[u.user_id]}
                               onClick={() => handleBan(u.user_id, u.is_banned)}
                               data-testid={`ban-btn-${u.user_id}`}
@@ -360,7 +446,72 @@ export default function SuperAdminPage() {
           </Card>
         </TabsContent>
 
-        {/* Activity Logs Tab */}
+        {/* ── Analytics Tab ── */}
+        <TabsContent value="analytics" className="space-y-4">
+          {analytics.length === 0 ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 size={24} className="animate-spin text-slate-500" />
+            </div>
+          ) : (
+            <>
+              <Card className="card">
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm" data-testid="analytics-table">
+                      <thead>
+                        <tr className="border-b border-slate-700">
+                          <th className="text-left py-3 px-4 text-xs text-slate-500 uppercase">Group</th>
+                          <th className="text-center py-3 px-3 text-xs text-slate-500 uppercase">Users</th>
+                          <th className="text-center py-3 px-3 text-xs text-slate-500 uppercase">Projects</th>
+                          <th className="text-center py-3 px-3 text-xs text-slate-500 uppercase">Work Logs</th>
+                          <th className="text-center py-3 px-3 text-xs text-slate-500 uppercase">Invoices</th>
+                          <th className="text-center py-3 px-3 text-xs text-slate-500 uppercase">Expenses</th>
+                          <th className="text-center py-3 px-3 text-xs text-slate-500 uppercase">Forms</th>
+                          <th className="text-left py-3 px-4 text-xs text-slate-500 uppercase">Last Active</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {analyticsSorted.map(a => {
+                          const totalActivity = a.work_logs + a.invoices + a.expenses + a.forms_submitted;
+                          const activityLevel = totalActivity > 20 ? 'high' : totalActivity > 5 ? 'mid' : 'low';
+                          return (
+                            <tr key={a.group_id} className="border-b border-slate-800 hover:bg-slate-800/30" data-testid={`analytics-row-${a.group_id}`}>
+                              <td className="py-3 px-4">
+                                <p className="font-medium">{a.group_name}</p>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <div className={`w-1.5 h-1.5 rounded-full ${activityLevel === 'high' ? 'bg-green-500' : activityLevel === 'mid' ? 'bg-amber-500' : 'bg-slate-600'}`} />
+                                  <span className="text-[10px] text-slate-500 capitalize">{activityLevel} activity</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                <span className="text-sm font-medium">{a.active_users}</span>
+                                <span className="text-xs text-slate-500">/{a.total_users}</span>
+                              </td>
+                              <td className="py-3 px-3 text-center font-medium">{a.projects}</td>
+                              <td className="py-3 px-3 text-center">
+                                <span className={`font-medium ${a.work_logs > 10 ? 'text-green-400' : ''}`}>{a.work_logs}</span>
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                <span className={`font-medium ${a.invoices > 5 ? 'text-blue-400' : ''}`}>{a.invoices}</span>
+                              </td>
+                              <td className="py-3 px-3 text-center font-medium">{a.expenses}</td>
+                              <td className="py-3 px-3 text-center font-medium">{a.forms_submitted}</td>
+                              <td className="py-3 px-4 text-xs text-slate-400">
+                                {a.last_activity ? formatLogTime(a.last_activity) : <span className="text-slate-600">Never</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+
+        {/* ── Activity Logs Tab ── */}
         <TabsContent value="activity" className="space-y-4">
           <Card className="card">
             <CardHeader className="pb-2">

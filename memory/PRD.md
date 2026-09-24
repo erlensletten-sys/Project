@@ -7,10 +7,10 @@ Multi-tenant business management platform with super admin oversight.
 - [x] Auth: Register/Login/Password Reset (Brevo SMTP)
 - [x] Professional auth pages with custom logo (dark glassmorphism theme)
 - [x] Multi-tenant groups with role-based access (Owner > Admin > HR > Member > Employee)
-- [x] **Super Admin** (erlen.sletten@gmail.com): platform stats, feature toggles per group, user ban/unban
+- [x] **Super Admin** (erlen.sletten@gmail.com): platform stats, feature toggles, user ban/unban
 - [x] Dashboard analytics with quick actions
 - [x] Invoicing with email sending + PDF generation/download
-- [x] Payroll module with **Earnings tab** (Akkord/Hourly breakdown per employee) + **CSV Export**
+- [x] Payroll module with **Earnings tab** (Akkord/Hourly breakdown) + **CSV Export**
 - [x] Expenses with receipt upload
 - [x] Projects with tasks + checklists tab
 - [x] HSE Documents with inline PDF viewer
@@ -25,23 +25,17 @@ Multi-tenant business management platform with super admin oversight.
 - [x] **User impersonation** for support purposes (Super Admin only, 2h sessions)
 - [x] **Admin activity/audit log** tracking all Super Admin actions
 - [x] **Emergent Object Storage** for file uploads (replacing local filesystem)
+- [x] **Group Analytics** — Per-group usage metrics in Super Admin Analytics tab (users, projects, work logs, invoices, expenses, forms, last activity with activity level indicators)
+- [x] **Bulk Actions** — Select All / individual group checkboxes with Bulk Verify, Unverify, Disable, Enable actions
+- [x] **Email Preview** — Live HTML preview in Settings for Invite and Password Reset email templates with tab switching
 
 ## Super Admin
 - Email: erlen.sletten@gmail.com
 - Password: SuperAdmin123!
+- Tabs: Groups (with bulk actions), Users (with impersonation), Analytics (usage metrics), Activity (audit log)
 - Toggleable features: akkord, invoicing, payroll, hse, checklists, reports, expenses, projects, work_log, forms
-- Can ban/unban any user across any group
-- Can verify/revoke verification for groups (24h trial enforcement)
-- Can disable/enable entire groups (kills all user sessions on disable)
-- Can impersonate any user for support (2-hour temporary sessions)
-- Activity log tracks all admin actions with timestamps
-
-## 24-Hour Trial System
-- New groups get `is_verified: false` and `trial_started_at` on registration
-- Groups have 24 hours of full access during trial
-- After 24 hours, unverified groups are blocked via `require_auth` middleware
-- Super Admin can verify groups to grant permanent access
-- Super Admin bypasses all trial/disable restrictions
+- Group governance: verify/revoke, disable/enable (kills sessions), 24h trial enforcement
+- Bulk operations: verify/unverify/disable/enable multiple groups at once
 
 ## Architecture
 - Frontend: React, Tailwind CSS, Shadcn UI, Context API, Lucide Icons

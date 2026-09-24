@@ -3885,6 +3885,194 @@ async def superadmin_activity_logs(request: Request, limit: int = 100, offset: i
     
     return {"logs": logs, "total": total}
 
+# ============== Group Analytics ==============
+
+@api_router.get("/superadmin/groups/{group_id}/analytics")
+async def superadmin_group_analytics(request: Request, group_id: str):
+    """Get detailed usage analytics for a specific group"""
+    await require_super_admin(request)
+    
+    group = await db.groups.find_one({"group_id": group_id}, {"_id": 0})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    gq = {"group_id": group_id}
+    
+    invoices_count = await db.invoices.count_documents(gq)
+    work_logs_count = await db.work_logs.count_documents(gq)
+    active_users = await db.users.count_documents({**gq, "is_active": True, "is_banned": {"$ne": True}})
+    total_users = await db.users.count_documents(gq)
+    expenses_count = await db.expenses.count_documents(gq)
+    forms_count = await db.form_submissions.count_documents(gq)
+    projects_count = await db.projects.count_documents(gq)
+    
+    # Last activity: most recent work_log or invoice
+    last_work_log = await db.work_logs.find(gq, {"_id": 0, "created_at": 1}).sort("created_at", -1).to_list(1)
+    last_invoice = await db.invoices.find(gq, {"_id": 0, "created_at": 1}).sort("created_at", -1).to_list(1)
+    
+    dates = []
+    if last_work_log and last_work_log[0].get("created_at"):
+        dates.append(last_work_log[0]["created_at"])
+    if last_invoice and last_invoice[0].get("created_at"):
+        dates.append(last_invoice[0]["created_at"])
+    
+    last_activity = max(dates).isoformat() if dates else None
+    
+    return {
+        "group_id": group_id,
+        "group_name": group.get("name"),
+        "invoices": invoices_count,
+        "work_logs": work_logs_count,
+        "active_users": active_users,
+        "total_users": total_users,
+        "expenses": expenses_count,
+        "forms_submitted": forms_count,
+        "projects": projects_count,
+        "last_activity": last_activity
+    }
+
+@api_router.get("/superadmin/analytics/overview")
+async def superadmin_analytics_overview(request: Request):
+    """Get analytics for all groups at once"""
+    await require_super_admin(request)
+    
+    groups = await db.groups.find({}, {"_id": 0, "group_id": 1, "name": 1}).to_list(1000)
+    
+    result = []
+    for g in groups:
+        gid = g["group_id"]
+        gq = {"group_id": gid}
+        
+        invoices = await db.invoices.count_documents(gq)
+        work_logs = await db.work_logs.count_documents(gq)
+        active_users = await db.users.count_documents({**gq, "is_active": True, "is_banned": {"$ne": True}})
+        total_users = await db.users.count_documents(gq)
+        expenses = await db.expenses.count_documents(gq)
+        forms = await db.form_submissions.count_documents(gq)
+        projects = await db.projects.count_documents(gq)
+        
+        last_work_log = await db.work_logs.find(gq, {"_id": 0, "created_at": 1}).sort("created_at", -1).to_list(1)
+        last_invoice = await db.invoices.find(gq, {"_id": 0, "created_at": 1}).sort("created_at", -1).to_list(1)
+        dates = []
+        if last_work_log and last_work_log[0].get("created_at"):
+            dates.append(last_work_log[0]["created_at"])
+        if last_invoice and last_invoice[0].get("created_at"):
+            dates.append(last_invoice[0]["created_at"])
+        
+        result.append({
+            "group_id": gid,
+            "group_name": g.get("name"),
+            "invoices": invoices,
+            "work_logs": work_logs,
+            "active_users": active_users,
+            "total_users": total_users,
+            "expenses": expenses,
+            "forms_submitted": forms,
+            "projects": projects,
+            "last_activity": max(dates).isoformat() if dates else None
+        })
+    
+    return result
+
+# ============== Bulk Admin Actions ==============
+
+@api_router.post("/superadmin/groups/bulk-verify")
+async def superadmin_bulk_verify(request: Request):
+    """Verify or unverify multiple groups"""
+    admin = await require_super_admin(request)
+    body = await request.json()
+    group_ids = body.get("group_ids", [])
+    verified = body.get("verified", True)
+    
+    if not group_ids:
+        raise HTTPException(status_code=400, detail="No groups specified")
+    
+    result = await db.groups.update_many(
+        {"group_id": {"$in": group_ids}},
+        {"$set": {"is_verified": verified, "updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    action = "bulk_verify" if verified else "bulk_unverify"
+    await log_admin_activity(admin["user_id"], action, f"{'Verified' if verified else 'Unverified'} {result.modified_count} groups")
+    
+    return {"ok": True, "modified": result.modified_count}
+
+@api_router.post("/superadmin/groups/bulk-disable")
+async def superadmin_bulk_disable(request: Request):
+    """Disable or enable multiple groups"""
+    admin = await require_super_admin(request)
+    body = await request.json()
+    group_ids = body.get("group_ids", [])
+    disabled = body.get("disabled", True)
+    
+    if not group_ids:
+        raise HTTPException(status_code=400, detail="No groups specified")
+    
+    result = await db.groups.update_many(
+        {"group_id": {"$in": group_ids}},
+        {"$set": {"is_disabled": disabled, "updated_at": datetime.now(timezone.utc)}}
+    )
+    
+    if disabled:
+        group_users = await db.users.find({"group_id": {"$in": group_ids}}, {"user_id": 1}).to_list(10000)
+        user_ids = [u["user_id"] for u in group_users]
+        if user_ids:
+            await db.user_sessions.delete_many({"user_id": {"$in": user_ids}})
+    
+    action = "bulk_disable" if disabled else "bulk_enable"
+    await log_admin_activity(admin["user_id"], action, f"{'Disabled' if disabled else 'Enabled'} {result.modified_count} groups")
+    
+    return {"ok": True, "modified": result.modified_count}
+
+# ============== Email Preview ==============
+
+@api_router.get("/settings/email/preview")
+async def preview_email_template(request: Request, template: str = "invite"):
+    """Generate a live preview of email templates"""
+    user = await require_auth(request)
+    
+    group = await db.groups.find_one({"group_id": user["group_id"]}, {"_id": 0})
+    group_name = group.get("name", "Your Company") if group else "Your Company"
+    sender_name = group.get("sender_name") or group_name
+    
+    if template == "reset":
+        content = f"""
+        <div style="padding: 40px 32px; text-align: center;">
+            <div style="width: 56px; height: 56px; background: rgba(249,115,22,0.15); border-radius: 50%; margin: 0 auto 20px; line-height: 56px; text-align: center;">
+                <span style="font-size: 24px;">&#128274;</span>
+            </div>
+            <h2 style="color: #f1f5f9; font-size: 22px; font-weight: 600; margin: 0 0 8px;">Password Reset</h2>
+            <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px;">Hello {user['name']}, you requested a password reset.</p>
+            <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0 0 32px;">Click the button below to choose a new password. This link expires in <strong style="color: #e2e8f0;">1 hour</strong>.</p>
+            <a href="#" style="display: inline-block; background: linear-gradient(135deg, #f97316, #ea580c); color: white; padding: 14px 36px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px;">Reset Password</a>
+            <p style="color: #64748b; font-size: 12px; margin: 32px 0 0;">If you didn't request this, you can safely ignore this email.</p>
+        </div>
+        """
+    else:
+        temp_password = "Temp1234!"
+        content = f"""
+        <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 32px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 22px; font-weight: 600;">Welcome to {group_name}!</h1>
+            <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">You've been invited to join the team</p>
+        </div>
+        <div style="padding: 32px;">
+            <p style="color: #e2e8f0; font-size: 15px; margin: 0 0 16px;">Hello <strong>John Doe</strong>,</p>
+            <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">An account has been created for you. Use the credentials below to log in.</p>
+            <div style="background: rgba(30,41,59,0.6); border: 1px solid rgba(148,163,184,0.1); border-radius: 12px; padding: 20px; margin: 0 0 24px;">
+                <p style="color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 12px;">Your Login Credentials</p>
+                <p style="color: #e2e8f0; margin: 4px 0;"><strong>Email:</strong> john.doe@example.com</p>
+                <p style="color: #e2e8f0; margin: 4px 0;"><strong>Password:</strong> {temp_password}</p>
+            </div>
+            <div style="text-align: center;">
+                <a href="#" style="display: inline-block; background: linear-gradient(135deg, #f97316, #ea580c); color: white; padding: 14px 36px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px;">Log In Now</a>
+            </div>
+            <p style="color: #64748b; font-size: 12px; text-align: center; margin: 32px 0 0;">Please change your password after your first login.</p>
+        </div>
+        """
+    
+    html = build_email_wrapper(content, sender_name)
+    return {"html": html, "template": template}
+
 # ============== CSV Export for Payroll Earnings ==============
 
 @api_router.get("/payroll/earnings/csv")
